@@ -183,9 +183,19 @@ can't reach vLLM and sends everything to Bedrock. To turn it back on:
 kubectl annotate -n vllm scaledobject vllm autoscaling.keda.sh/paused-replicas-
 ```
 
-A new node means a new ~13-minute cold start (the image pull dominates).
+Measured in the rehearsal:
 
-> Not yet exercised in the rehearsal — verify before relying on it.
+| Step | Time |
+|---|---|
+| Pause → vLLM at 0 replicas | seconds |
+| → Karpenter marks the node `Empty` and terminates it | 5 min 20 s (EC2 billing stops at `shutting-down`) |
+| Un-pause → first spot launch | **failed: `InsufficientCapacityError`** |
+| → Karpenter retries after its ~3-minute back-off | 3 min 20 s |
+| → new `g4dn.xlarge` spot node `Ready`, image pulled (4 m 34 s), vLLM ready | 12 min 20 s in all |
+
+Spot capacity isn't guaranteed: a launch can fail, and Karpenter waits about 3
+minutes before retrying the offerings that failed. Listing three instance
+families across two AZs gives it somewhere else to go.
 
 ## Undo
 

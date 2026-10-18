@@ -113,6 +113,14 @@ Kubernetes injects `<SERVICE>_PORT` variables for each Service in the
 namespace; a Service named `vllm` produces `VLLM_PORT`, which vLLM reads as
 its own setting. The Deployment sets `enableServiceLinks: false` to stop it.
 
+**`InsufficientCapacityError ... insufficient capacity, with fleet error`, then
+`nodepool requirements filtered out all available instance types` for ~3 min**
+No spot capacity for the offerings Karpenter tried. It marks them unavailable
+for about 3 minutes, then retries; in the rehearsal the retry succeeded. If it
+keeps failing, widen the NodePool (more families, e.g. `g6e`, or more AZs) or
+allow `on-demand` as a fallback (that needs the separate on-demand G and VT
+quota, which also starts at 0).
+
 **vLLM pod `Pending` with no NodeClaim**
 Check `kubectl get nodepool gpu` is `READY True` and Karpenter's logs
 (`kubectl logs -n kube-system -l app.kubernetes.io/name=karpenter`). A
