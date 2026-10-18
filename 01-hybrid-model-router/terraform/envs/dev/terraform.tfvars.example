@@ -1,0 +1,56 @@
+# Copy to terraform.tfvars (gitignored) and fill in the <...> values.
+
+region = "us-east-1"
+name   = "ai-router-dev"
+
+vpc_cidr        = "10.0.0.0/16"
+azs             = ["us-east-1a", "us-east-1b"]
+public_subnets  = ["10.0.101.0/24", "10.0.102.0/24"]
+private_subnets = ["10.0.1.0/24", "10.0.2.0/24"]
+
+# One NAT gateway is enough for dev; set false for per-AZ NAT in prod.
+single_nat_gateway = true
+
+# Interface endpoints (Bedrock, ECR) cost ~$0.06/hr for 2 AZs; traffic uses the
+# NAT gateway instead. The free S3 gateway endpoint is always on.
+enable_vpc_endpoints = false
+
+tags = {
+  Environment = "dev"
+  Project     = "hybrid-model-router"
+}
+
+gateway_image_tag            = "0.2.2"
+bedrock_inference_profile_id = "global.anthropic.claude-haiku-4-5-20251001-v1:0"
+
+# Semantic cache classifier: cache hits now decide the tier.
+router_cache_mode = "active"
+
+# EKS cluster that will host vLLM (latest standard-support version, checked 2026-10-18).
+kubernetes_version = "1.37"
+
+# Karpenter 1.15.x is the only line that supports Kubernetes 1.37.
+karpenter_version = "1.15.0"
+
+# KEDA scales vLLM on its queue; Prometheus (server only) feeds it the metric.
+# KEDA 2.21 is tested up to Kubernetes 1.36; the APIs it uses are stable in 1.37.
+keda_version       = "2.21.0"
+prometheus_version = "29.37.0"
+
+# Creates the internal NLB in front of vLLM.
+lb_controller_version = "3.6.0"
+
+# Who can use the cluster (console and kubectl). access: admin or view.
+# Must include the identity that runs terraform (see `aws sts get-caller-identity`).
+eks_access_entries = {
+  me = {
+    principal_arn = "arn:aws:iam::<ACCOUNT_ID>:role/<your-admin-role>"
+    access        = "admin"
+  }
+}
+
+# vLLM's internal NLB, from `make vllm-url` (changes on every rebuild).
+# Before vLLM exists, use http://vllm.invalid:8000: the circuit breaker can't
+# reach it and sends every request to Bedrock.
+vllm_api_base    = "http://vllm.invalid:8000/v1"
+vllm_metrics_url = "http://vllm.invalid:8000/metrics"

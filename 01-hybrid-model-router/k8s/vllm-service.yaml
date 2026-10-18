@@ -1,0 +1,24 @@
+# Internal NLB in front of vLLM, created by the AWS Load Balancer Controller.
+# The gateway (Fargate, same VPC) calls it on port 8000.
+# Apply with: VPC_CIDR=... envsubst < vllm-service.yaml | kubectl apply -f -
+apiVersion: v1
+kind: Service
+metadata:
+  name: vllm
+  namespace: vllm
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: external
+    service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: ip
+    service.beta.kubernetes.io/aws-load-balancer-scheme: internal
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-protocol: HTTP
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-path: /health
+spec:
+  type: LoadBalancer
+  loadBalancerSourceRanges:
+    - ${VPC_CIDR}                      # only callers inside the VPC
+  selector:
+    app: vllm
+  ports:
+    - name: http
+      port: 8000
+      targetPort: http

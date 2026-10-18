@@ -1,0 +1,19 @@
+# Scales vLLM on its queue: requests waiting for a GPU slot, from Prometheus.
+# maxReplicaCount is 1 while the G and VT spot quota is 4 vCPUs (one GPU node);
+# raise both to scale out.
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: vllm
+  namespace: vllm
+spec:
+  scaleTargetRef:
+    name: vllm
+  minReplicaCount: 1
+  maxReplicaCount: 1
+  triggers:
+    - type: prometheus
+      metadata:
+        serverAddress: http://prometheus-server.monitoring.svc.cluster.local
+        query: sum(vllm:num_requests_waiting{namespace="vllm"})
+        threshold: "2"                 # add a replica per 2 waiting requests

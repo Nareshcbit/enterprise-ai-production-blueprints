@@ -1,0 +1,29 @@
+# Model weights on EFS, shared read-many by every vLLM pod.
+# The EFS CSI driver creates an access point under /models for the claim.
+# Apply with the file system ID filled in (it changes on every rebuild):
+#   EFS_FILE_SYSTEM_ID=$(terraform output -raw efs_file_system_id) envsubst < model-storage.yaml | kubectl apply -f -
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: efs-models
+provisioner: efs.csi.aws.com
+parameters:
+  provisioningMode: efs-ap
+  fileSystemId: ${EFS_FILE_SYSTEM_ID}
+  directoryPerms: "755"
+  basePath: /models
+reclaimPolicy: Retain                  # keep the weights if the claim is deleted
+volumeBindingMode: Immediate
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: model-weights
+  namespace: vllm
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: efs-models
+  resources:
+    requests:
+      storage: 20Gi                    # required by Kubernetes; EFS doesn't enforce it

@@ -1,0 +1,26 @@
+# LiteLLM gateway: clients send model "auto"; plugins.router picks the backend.
+model_list:
+  - model_name: vllm-local
+    litellm_params:
+      model: hosted_vllm/qwen2.5-7b-awq
+      api_base: os.environ/VLLM_API_BASE
+      timeout: 30
+
+  - model_name: bedrock-claude
+    litellm_params:
+      # e.g. bedrock/converse/us.anthropic.claude-sonnet-5-5 (set per environment)
+      model: os.environ/BEDROCK_MODEL
+      aws_region_name: os.environ/AWS_REGION
+
+litellm_settings:
+  callbacks: plugins.router.router_hook
+
+router_settings:
+  # Covers vLLM failures after routing (timeouts, 5xx) that the queue check can't see.
+  fallbacks:
+    - vllm-local: ["bedrock-claude"]
+  num_retries: 0
+
+general_settings:
+  # Clients send "Authorization: Bearer <key>". Injected from Secrets Manager on ECS.
+  master_key: os.environ/LITELLM_MASTER_KEY

@@ -1,0 +1,91 @@
+# vLLM serving Qwen2.5-7B-Instruct-AWQ from the EFS volume on one spot GPU.
+# KEDA owns the replica count (keda-scaledobject.yaml).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vllm
+  namespace: vllm
+spec:
+  selector:
+    matchLabels:
+      app: vllm
+  strategy:
+    type: Recreate                     # one GPU: stop the old pod before starting a new one
+  template:
+    metadata:
+      labels:
+        app: vllm
+      annotations:                     # Prometheus scrapes vllm:num_requests_waiting
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+        prometheus.io/path: /metrics
+    spec:
+      # Without this, Kubernetes injects VLLM_PORT=tcp://<service-ip>:8000 for
+      # the Service named "vllm", which vLLM reads as its own setting and crashes.
+      enableServiceLinks: false
+      nodeSelector:
+        role: gpu
+      tolerations:
+        - key: nvidia.com/gpu
+          operator: Exists
+          effect: NoSchedule
+      containers:
+        - name: vllm
+          image: docker.io/vllm/vllm-openai:v0.32.0
+          args:
+            - /models/qwen2.5-7b-instruct-awq
+            - --served-model-name=qwen2.5-7b-awq
+            - --quantization=awq               # T4 can't run the Marlin kernels
+            - --dtype=half                     # T4 has no bfloat16
+            - --max-model-len=8192
+            - --gpu-memory-utilization=0.90
+            - --enable-chunked-prefill
+            - --port=8000
+          env:
+            - name: HF_HUB_OFFLINE             # weights are local; never call Hugging Face
+              value: "1"
+            - name: VLLM_NO_USAGE_STATS
+              value: "1"
+          ports:
+            - name: http
+              containerPort: 8000
+          resources:
+            requests:
+              cpu: "2"
+              memory: 10Gi
+              nvidia.com/gpu: "1"
+            limits:
+              memory: 14Gi
+              nvidia.com/gpu: "1"
+          startupProbe:                        # image pull happens before this; model load ~1-3 min
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 10
+            failureThreshold: 60
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 30
+            failureThreshold: 3
+          volumeMounts:
+            - name: models
+              mountPath: /models
+              readOnly: true
+            - name: shm
+              mountPath: /dev/shm
+      volumes:
+        - name: models
+          persistentVolumeClaim:
+            claimName: model-weights
+            readOnly: true
+        - name: shm                            # PyTorch needs more shared memory than the 64 MB default
+          emptyDir:
+            medium: Memory
+            sizeLimit: 2Gi

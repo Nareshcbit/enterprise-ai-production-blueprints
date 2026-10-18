@@ -1,0 +1,71 @@
+# Spot GPU nodes for vLLM, launched by Karpenter only when a GPU pod is pending.
+# Apply with values filled in from terraform output:
+#   CLUSTER_NAME=... KARPENTER_NODE_ROLE=... envsubst < gpu-nodepool.yaml | kubectl apply -f -
+apiVersion: karpenter.k8s.aws/v1
+kind: EC2NodeClass
+metadata:
+  name: gpu
+spec:
+  role: ${KARPENTER_NODE_ROLE}
+  # Bottlerocket's NVIDIA variant (picked automatically for GPU instances)
+  # ships the driver and the device plugin, so nothing else to install.
+  amiSelectorTerms:
+    - alias: bottlerocket@latest
+  subnetSelectorTerms:
+    - tags:
+        karpenter.sh/discovery: ${CLUSTER_NAME}
+  securityGroupSelectorTerms:
+    - tags:
+        karpenter.sh/discovery: ${CLUSTER_NAME}
+  blockDeviceMappings:
+    - deviceName: /dev/xvda          # Bottlerocket OS volume (its snapshot is 6 GB)
+      ebs:
+        volumeSize: 8Gi
+        volumeType: gp3
+        encrypted: true
+    - deviceName: /dev/xvdb          # container images: vLLM's is ~20 GB unpacked
+      ebs:
+        volumeSize: 80Gi
+        volumeType: gp3
+        encrypted: true
+---
+apiVersion: karpenter.sh/v1
+kind: NodePool
+metadata:
+  name: gpu
+spec:
+  template:
+    metadata:
+      labels:
+        role: gpu
+    spec:
+      nodeClassRef:
+        group: karpenter.k8s.aws
+        kind: EC2NodeClass
+        name: gpu
+      # Only pods that tolerate this (vLLM) land on GPU nodes.
+      taints:
+        - key: nvidia.com/gpu
+          value: "true"
+          effect: NoSchedule
+      requirements:
+        - key: karpenter.sh/capacity-type
+          operator: In
+          values: ["spot"]
+        - key: karpenter.k8s.aws/instance-family
+          operator: In
+          values: ["g4dn", "g5", "g6"]   # Karpenter picks the cheapest available
+        - key: karpenter.k8s.aws/instance-size
+          operator: In
+          values: ["xlarge"]             # 4 vCPU, 1 GPU
+        - key: kubernetes.io/arch
+          operator: In
+          values: ["amd64"]
+      expireAfter: 168h
+  # Matches the 4-vCPU G and VT spot quota: at most one GPU node.
+  limits:
+    cpu: "4"
+  disruption:
+    # Remove the node once vLLM is gone, but never move a running vLLM pod.
+    consolidationPolicy: WhenEmpty
+    consolidateAfter: 5m

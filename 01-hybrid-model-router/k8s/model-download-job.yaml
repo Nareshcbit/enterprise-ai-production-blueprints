@@ -1,0 +1,45 @@
+# One-off: download the model weights from Hugging Face onto the EFS volume.
+# Runs on a system node (no GPU needed). The model is ungated, so no token.
+# Re-running is safe: files already on EFS are skipped.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: model-download
+  namespace: vllm
+spec:
+  backoffLimit: 2
+  ttlSecondsAfterFinished: 3600
+  template:
+    spec:
+      restartPolicy: Never
+      nodeSelector:
+        role: system
+      containers:
+        - name: download
+          image: public.ecr.aws/docker/library/python:3.12-slim
+          command: ["sh", "-c"]
+          args:
+            - >-
+              pip install --quiet --no-cache-dir "huggingface_hub[hf_xet]==2.2.0" &&
+              hf download "$MODEL_ID" --local-dir "/models/$MODEL_DIR" &&
+              ls -lh "/models/$MODEL_DIR"
+          env:
+            - name: MODEL_ID
+              value: Qwen/Qwen2.5-7B-Instruct-AWQ
+            - name: MODEL_DIR
+              value: qwen2.5-7b-instruct-awq
+            - name: HF_HUB_DISABLE_TELEMETRY
+              value: "1"
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              memory: 1Gi
+          volumeMounts:
+            - name: models
+              mountPath: /models
+      volumes:
+        - name: models
+          persistentVolumeClaim:
+            claimName: model-weights
