@@ -55,25 +55,43 @@ NAME        TYPE          CAPACITY   ZONE         NODE                         R
 gpu-fqkn9   g4dn.xlarge   spot       us-east-1a   ip-10-0-1-155.ec2.internal   True
 ```
 
-**4. Wait for vLLM** (`1/1 Running`). The first start on a fresh node took
-~13 minutes in testing:
+(or `g5.xlarge` / `g6.xlarge` — whichever is cheapest and available)
 
-| Phase | Time |
-|---|---|
-| Karpenter launches the spot node → node `Ready` | ~1 min |
-| Pull `vllm/vllm-openai:v0.32.0` (9.2 GB) through the NAT gateway | ~7 min |
-| Load weights from EFS (21 s), compile, warm up, allocate KV cache | ~2.5 min |
+**4. Wait for vLLM** (`1/1 Running`). Karpenter picks whichever spot
+offering is cheapest *at that moment*, so you may get a T4 or an A10G. Measured
+in two from-zero runs:
+
+| Phase | Run 1: `g4dn.xlarge` (T4) | Run 2: `g5.xlarge` (A10G) |
+|---|---|---|
+| Spot node launched → pod scheduled | ~1 min | ~1 min |
+| Pull `vllm/vllm-openai:v0.32.0` (9.2 GB) through the NAT gateway | ~7 min | 4 min 34 s |
+| Load weights from EFS, compile, warm up, allocate KV cache | ~2.5 min (weights 21 s) | ~3 min (weights 27 s) |
+| **First token possible after** | **~13 min** (incl. one crash, since fixed) | **~9 min** |
 
 ```bash
 kubectl rollout status -n vllm deploy/vllm --timeout=20m
 kubectl logs -n vllm deploy/vllm | grep -E 'Loading weights took|GPU KV cache size|startup complete'
 ```
 
+On a T4:
+
 ```
 Loading weights took 20.75 seconds
 GPU KV cache size: 113,744 tokens, Maximum concurrency for 8,192 tokens per request: 13.88x
 INFO:     Application startup complete.
 ```
+
+On an A10G (24 GB, so twice the KV cache; vLLM also picks FlashAttention,
+which the T4 can't run):
+
+```
+Loading weights took 26.94 seconds
+GPU KV cache size: 239,440 tokens, Maximum concurrency for 8,192 tokens per request: 29.23x
+INFO:     Application startup complete.
+```
+
+The same flags work on both: `--dtype=half` and `--quantization=awq` are the
+T4-safe settings, and the A10G runs them too.
 
 **5. Point the gateway at vLLM.** The NLB's name changes on every rebuild:
 

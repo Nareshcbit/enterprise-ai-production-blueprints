@@ -19,7 +19,8 @@ AWQ is 5.6 GB, Apache 2.0, and **ungated** — no Hugging Face token needed.
 ## Steps
 
 **1. Create EFS and the rest of the AWS resources** (this is the final full
-apply; it also installs module 05's charts):
+apply, 38 resources; it also installs module 05's charts and module 06's
+Load Balancer Controller):
 
 ```bash
 make addons

@@ -25,6 +25,8 @@ remove_kubernetes_resources() {
   # Karpenter terminates its own EC2 instances when its NodePools are deleted.
   if kubectl get crd nodepools.karpenter.sh >/dev/null 2>&1; then
     kubectl delete nodepools.karpenter.sh --all --wait=true --timeout=10m
+    echo "Waiting for Karpenter to terminate the GPU instances (usually 5-7 minutes)."
+    echo "If this step times out, nothing is broken: run 'make destroy' again to continue."
     kubectl delete ec2nodeclasses.karpenter.k8s.aws --all --wait=true --timeout=5m
   fi
 
