@@ -12,6 +12,7 @@ cluster goes first:
 | AWS Load Balancer integration | vLLM NLB (module 06) | Deleting the `vllm` namespace (its Service) |
 | EFS CSI driver | EFS access point | Deleted with the file system |
 | You | Images in ECR | Deleting them first; the repository won't delete otherwise |
+| VPC CNI | A detached `aws-K8S-<instance>` network interface left by a terminated node | Deleting it before `terraform destroy`; it blocks the subnet and node security group |
 
 ## Steps
 
@@ -26,11 +27,13 @@ which runs `scripts/teardown.sh`:
 2. Deletes the `vllm` namespace (Deployment, Service/NLB, PVC, Job) and the
    `efs-models` StorageClass.
 3. Deletes every image in the gateway ECR repository.
-4. Runs `terraform destroy`. **Review the plan, then type `yes`.** Expect
+4. Deletes detached `aws-K8S-*` network interfaces the VPC CNI left behind in the
+   stack's VPC (only detached ones; nothing attached is touched).
+5. Runs `terraform destroy`. **Review the plan, then type `yes`.** Expect
    ~15–20 minutes, mostly the EKS cluster and NAT gateway.
-5. Deletes the Container Insights log group, which ECS creates itself, so
+6. Deletes the Container Insights log group, which ECS creates itself, so
    Terraform doesn't own it.
-6. Reports any Karpenter instance or vLLM load balancer still alive.
+7. Reports any Karpenter instance or vLLM load balancer still alive.
 
 ## You should see
 

@@ -65,6 +65,23 @@ laptop awake during long applies (`caffeinate -i make eks` on macOS).
 Fixed in the module (`attach_repository_policy = false`). Appears if you set
 `create_repository_policy` without a policy.
 
+**Destroy fails after ~20 minutes: `DependencyViolation` deleting a private subnet
+and the EKS node security group**
+A network interface is still in the subnet. Find it:
+
+```bash
+aws ec2 describe-network-interfaces --region us-east-1 \
+  --filters Name=subnet-id,Values=<subnet-id> \
+  --query 'NetworkInterfaces[].[NetworkInterfaceId,Status,Description]' --output text
+```
+
+If it is `available` (detached) and named `aws-K8S-i-<instance>`, the VPC CNI created it
+for pod IPs on a node that has since terminated (here, the spot GPU node Karpenter
+removed). Delete it with `aws ec2 delete-network-interface --network-interface-id <eni>`
+and run `make destroy` again. The teardown script now does this before
+`terraform destroy`. Anything *attached* (`in-use`) belongs to something still running:
+find that first.
+
 **Destroy fails: `RepositoryNotEmptyException`**
 Delete the images first (`make destroy` does). Deleting by tag isn't enough:
 Docker pushes an image index plus untagged child manifests (the amd64 image and

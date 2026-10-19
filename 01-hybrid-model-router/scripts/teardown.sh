@@ -52,6 +52,26 @@ empty_ecr_repository() {
   exit 1
 }
 
+delete_orphaned_cni_interfaces() {
+  # The VPC CNI attaches extra network interfaces ("aws-K8S-<instance>") to nodes for
+  # pod IPs. When Karpenter terminates a node, one can be left behind, detached. It still
+  # sits in a private subnet and uses the node security group, so terraform destroy fails
+  # on both with DependencyViolation. Delete only detached ones, in this stack's VPC.
+  local vpc enis eni
+  vpc="$(aws ec2 describe-vpcs --region "$REGION" --filters "Name=tag:Name,Values=$NAME" \
+    --query 'Vpcs[0].VpcId' --output text)"
+  [ "$vpc" = "None" ] && return 0
+  step "VPC: deleting detached VPC CNI interfaces left by terminated nodes"
+  enis="$(aws ec2 describe-network-interfaces --region "$REGION" \
+    --filters "Name=vpc-id,Values=$vpc" "Name=status,Values=available" "Name=description,Values=aws-K8S-*" \
+    --query 'NetworkInterfaces[].NetworkInterfaceId' --output text)"
+  [ -z "$enis" ] && { echo "None found."; return 0; }
+  for eni in $enis; do
+    aws ec2 delete-network-interface --region "$REGION" --network-interface-id "$eni"
+    echo "Deleted $eni"
+  done
+}
+
 delete_unmanaged_log_groups() {
   # ECS creates this Container Insights log group itself; Terraform doesn't own it.
   local group="/aws/ecs/containerinsights/$NAME-gateway/performance"
@@ -78,6 +98,7 @@ else
   echo "EKS cluster $NAME not found; skipping Kubernetes cleanup."
 fi
 empty_ecr_repository
+delete_orphaned_cni_interfaces
 
 step "Terraform: destroying everything (review the plan, then type yes)"
 export PATH="/Applications/Docker.app/Contents/Resources/bin:$PATH"
