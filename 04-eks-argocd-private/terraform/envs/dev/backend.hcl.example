@@ -1,0 +1,4 @@
+# Copy to backend.hcl (gitignored). The bucket must exist, with versioning on.
+bucket = "<your-state-bucket>"
+key    = "enterprise-ai-production-blueprints/04-eks-argocd-private/dev/terraform.tfstate"
+region = "<bucket-region>"

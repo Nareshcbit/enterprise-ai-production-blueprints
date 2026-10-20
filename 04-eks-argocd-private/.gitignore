@@ -1,0 +1,2 @@
+# Created by `make test` (terraform init per module); only the env lock file is tracked.
+terraform/modules/*/.terraform.lock.hcl
