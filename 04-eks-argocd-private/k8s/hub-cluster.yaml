@@ -1,0 +1,14 @@
+# Registers the hub as a deployment target. The managed capability doesn't add
+# the local cluster for you, and it needs the cluster ARN, never the API URL.
+# CLUSTER_ARN is filled in by `make argocd-config`.
+apiVersion: v1
+kind: Secret
+metadata:
+  name: hub
+  namespace: argocd
+  labels:
+    argocd.argoproj.io/secret-type: cluster
+stringData:
+  name: hub
+  server: ${CLUSTER_ARN}
+  project: guestbook

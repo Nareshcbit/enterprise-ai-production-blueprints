@@ -1,0 +1,20 @@
+# Argo CD fetches this public repo from AWS-managed infrastructure; the nodes
+# never talk to GitHub. CLUSTER_ARN is filled in by `make argocd-config`.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: guestbook
+  namespace: argocd
+spec:
+  project: guestbook
+  source:
+    repoURL: https://github.com/argoproj/argocd-example-apps
+    targetRevision: HEAD
+    path: guestbook
+  destination:
+    server: ${CLUSTER_ARN}
+    namespace: guestbook
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

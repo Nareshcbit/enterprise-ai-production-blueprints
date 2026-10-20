@@ -1,0 +1,22 @@
+# One AppProject per trust boundary: this one may deploy only the example repo,
+# only to the guestbook namespace on the hub.
+# CLUSTER_ARN is filled in by `make argocd-config`.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: guestbook
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: guestbook
+  namespace: argocd
+spec:
+  description: Sample app that proves the private Argo CD deploys end to end
+  sourceNamespaces:
+    - argocd
+  sourceRepos:
+    - https://github.com/argoproj/argocd-example-apps
+  destinations:
+    - server: ${CLUSTER_ARN}
+      namespace: guestbook
