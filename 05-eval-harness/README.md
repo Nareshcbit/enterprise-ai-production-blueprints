@@ -63,6 +63,7 @@ harness/graders.py            A3   harness/metrics.py  B2, B4
 harness/judge.py              C2   harness/gate.py     D2
 harness/ci.py                 CI entry point: exit 1 blocks the merge
 harness/bedrock.py            live mode: Bedrock Converse, structured output via a forced tool
+harness/bedrock_eval.py       same v2 recordings graded by Amazon Bedrock Evaluations (opt-in)
 baselines/v2.json             per-case results of the last good prompt (written by make B4)
 ci/eval-gate.yml              example GitHub Actions job: copy it into your repo's .github/workflows/
 tools/generate_synthetic.py   regenerates data/ and recordings/
@@ -93,6 +94,72 @@ Things that behave differently live:
   just noise. Rerun blocked cases, or average more runs per case, before trusting a block.
 - **Small calibration set.** 22 of 25 (88%) has a wide margin; grow the calibration set before relying
   on the judge.
+
+## Same data on Bedrock Evaluations
+
+An opt-in step: hand the recorded v2 outputs (run 0, the run with C-1042's `standard` miss) to an
+[Amazon Bedrock Evaluations](https://docs.aws.amazon.com/bedrock/latest/userguide/evaluation-judge.html)
+LLM-as-a-judge job and watch the managed service grade the data your harness graded in step C2.
+
+```sh
+make bedrock-eval          # free: writes bedrock_eval/triage_v2_byo.jsonl and prints the request
+make bedrock-eval-submit   # real job: uploads the dataset to S3 and calls CreateEvaluationJob
+```
+
+What `harness/bedrock_eval.py` builds:
+- **A bring-your-own-responses dataset.** One JSONL row per claim: `prompt` (the claim),
+  `referenceResponse` and `category` (the adjusters' label, so scores are also reported per class), and
+  `modelResponses` with one `{response, modelIdentifier}` entry holding the recorded output. Bedrock skips
+  the model-invoke step and only runs the judge.
+  ([dataset format](https://docs.aws.amazon.com/bedrock/latest/userguide/model-evaluation-prompt-datasets-judge.html#model-evaluation-prompt-datasets-judge-byoir))
+- **A custom metric with the C2 rubric.** `instructions` is `prompts/judge.md` minus its `record_verdict`
+  line, plus the `{{prompt}}` and `{{prediction}}` variables at the end. The rating scale is
+  `Pass` = 1, `Fail` = 0, so the metric's average is the pass rate. Like the C2 judge, it does not see the
+  adjusters' label (`{{ground_truth}}` is not used).
+  ([custom metric prompts](https://docs.aws.amazon.com/bedrock/latest/userguide/model-evaluation-custom-metrics-prompt-formats.html))
+- **The job request.** `applicationType: ModelEvaluation`, the custom metric in `customMetricConfig` with
+  its own `evaluatorModelConfig`, and `inferenceConfig.models[0].precomputedInferenceSource` whose
+  `inferenceSourceIdentifier` matches the dataset's `modelIdentifier`. A test checks the request against
+  the boto3 service model offline.
+  ([custom metric job](https://docs.aws.amazon.com/bedrock/latest/userguide/model-evaluation-custom-metrics-create-job.html),
+  [CreateEvaluationJob](https://docs.aws.amazon.com/bedrock/latest/APIReference/API_CreateEvaluationJob.html))
+
+Prerequisites for `make bedrock-eval-submit`:
+
+| Variable | What | Default |
+|---|---|---|
+| `BEDROCK_EVAL_BUCKET` | S3 bucket for the dataset (`<prefix>/input/`) and results (`<prefix>/output/`) | required |
+| `BEDROCK_EVAL_ROLE_ARN` | service role Bedrock assumes to run the job | required |
+| `BEDROCK_EVAL_PREFIX` | key prefix in the bucket | `eval-harness` |
+| `BEDROCK_EVAL_JUDGE_MODEL_ID` | judge model or inference profile | `us.anthropic.claude-opus-4-5-20251101-v1:0` |
+| `AWS_REGION` | Region for the job, the bucket and the judge | `us-east-1` |
+
+- **Service role.** Trust policy: principal `bedrock.amazonaws.com`, `sts:AssumeRole`, with conditions
+  `aws:SourceAccount` = your account and `aws:SourceArn` = `arn:aws:bedrock:<region>:<account>:evaluation-job/*`.
+  Permissions: `s3:GetObject`, `s3:ListBucket` on the dataset; `s3:GetObject`, `s3:ListBucket`,
+  `s3:PutObject`, `s3:GetBucketLocation`, `s3:AbortMultipartUpload`, `s3:ListBucketMultipartUploads` on the
+  output location; `bedrock:InvokeModel` (plus `CreateModelInvocationJob`/`StopModelInvocationJob`) on the
+  judge model and inference profile.
+  ([judge service role](https://docs.aws.amazon.com/bedrock/latest/userguide/judge-service-roles.html),
+  [trust policy example](https://docs.aws.amazon.com/bedrock/latest/userguide/automatic-service-roles.html))
+- **Model access.** The judge must be on the
+  [custom-metric evaluator list](https://docs.aws.amazon.com/bedrock/latest/userguide/evaluation-judge.html#evaluation-judge-supported-evaluator-custom)
+  (Claude Opus 4.5 is; cross-Region inference profiles are supported) and enabled in your Region.
+  The job, bucket and judge should be in the same Region.
+- **Your own permissions** to call `bedrock:CreateEvaluationJob` and `bedrock:GetEvaluationJob`
+  ([prerequisites](https://docs.aws.amazon.com/bedrock/latest/userguide/model-evaluation-judge-create.html#model-evaluation-judge-create-prereqs)).
+
+Cost: there is no per-job fee for LLM-as-a-judge evaluation; you pay the judge model's on-demand token
+prices for 100 judge calls (the triage model is not invoked). See
+[Amazon Bedrock pricing](https://aws.amazon.com/bedrock/pricing/). The request and the job ARN are logged
+to `live.log`.
+
+How it compares with `make C2`: both apply the same rubric, but they answer different questions. The
+managed job gives a Pass/Fail score and an explanation per claim, an average, and a per-category
+breakdown in the console and in S3; C-1042 should come back `Fail` (it ignores `uninhabitable_home`).
+It does not compare against `baselines/v2.json`: the per-case regression check in step D2 stays in your
+harness. Use the job's per-case scores as another judge to calibrate against the adjusters, the way C2
+calibrates the DIY judge.
 
 ## Lint
 

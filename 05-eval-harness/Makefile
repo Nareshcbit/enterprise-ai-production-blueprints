@@ -2,7 +2,7 @@
 # https://nmadiraju.com/posts/genai-eval-harness/
 PY ?= python3
 
-.PHONY: setup A1 A2 A3 B1 B2 B3 B4 C1 C2 D1 D2 test lint check-solutions live live-judge
+.PHONY: setup A1 A2 A3 B1 B2 B3 B4 C1 C2 D1 D2 test lint check-solutions live live-judge bedrock-eval bedrock-eval-submit
 
 setup:            ## install dependencies
 	$(PY) -m pip install -r requirements.txt
@@ -61,3 +61,12 @@ live:             ## same eval against Bedrock (costs money; needs AWS credentia
 
 live-judge:       ## calibrate the judge model on Bedrock
 	$(PY) -m harness.judge_run --live
+
+bedrock-eval:     ## free dry run: write the Bedrock Evaluations dataset and print the job request
+	$(PY) -m harness.bedrock_eval --dry-run
+
+bedrock-eval-submit: ## real Bedrock Evaluations job on the v2 recordings (costs money: judge tokens)
+	@echo "WARNING: starts a Bedrock Evaluations job. You pay for the judge model's tokens"
+	@echo "(100 prompts, on-demand pricing). Needs BEDROCK_EVAL_ROLE_ARN and BEDROCK_EVAL_BUCKET."
+	@echo "Press Ctrl-C within 5 seconds to cancel." && sleep 5
+	$(PY) -m harness.bedrock_eval --submit
