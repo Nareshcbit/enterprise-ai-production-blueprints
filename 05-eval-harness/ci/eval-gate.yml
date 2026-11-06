@@ -1,0 +1,21 @@
+# Example GitHub Actions job. Copy to .github/workflows/eval-gate.yml in your own repo.
+# Offline it grades recordings. To grade a real model, set EVAL_LIVE=--live and add an
+# aws-actions/configure-aws-credentials step (OIDC role) with `permissions: id-token: write`.
+name: eval-gate
+on:
+  pull_request:
+    paths: ["prompts/**", "harness/**", "data/**"]
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      - run: python -m pytest -q
+      - name: Gate the candidate prompt against the last good run
+        run: python -m harness.ci --candidate v4 --baseline baselines/v2.json $EVAL_LIVE
+        env:
+          EVAL_LIVE: ""

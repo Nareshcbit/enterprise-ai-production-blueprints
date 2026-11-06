@@ -1,0 +1,100 @@
+{"id": "C-1001", "claim": "Laptop dropped and the screen cracked. Repair quote $2950.", "expected": {"priority": "standard"}}
+{"id": "C-1002", "claim": "Windscreen chip from a stone on the motorway. Repair $730.", "expected": {"priority": "fast_track"}}
+{"id": "C-1003", "claim": "Laptop dropped and the screen cracked. Repair quote $4200.", "expected": {"priority": "standard"}}
+{"id": "C-1004", "claim": "Laptop dropped and the screen cracked. Repair quote $1550.", "expected": {"priority": "standard"}}
+{"id": "C-1005", "claim": "Washing machine leaked and damaged the kitchen floor. The leak is fixed. Quote $5200.", "expected": {"priority": "standard"}}
+{"id": "C-1006", "claim": "Laptop dropped and the screen cracked. Repair quote $2450.", "expected": {"priority": "standard"}}
+{"id": "C-1007", "claim": "Rear bumper dented in a car park. No one was hurt. Estimated repair $4050.", "expected": {"priority": "standard"}}
+{"id": "C-1008", "claim": "Sunglasses lost on holiday. Receipt $325.", "expected": {"priority": "fast_track"}}
+{"id": "C-1009", "claim": "Spoiled food after a two-hour power cut. Receipts total $540.", "expected": {"priority": "fast_track"}}
+{"id": "C-1010", "claim": "Garage door hit while reversing. Door still works. Estimate $2500.", "expected": {"priority": "standard"}}
+{"id": "C-1011", "claim": "The basement is flooding from a broken water main and the water is still rising.", "expected": {"priority": "urgent"}}
+{"id": "C-1012", "claim": "Wing mirror knocked off on a narrow street. Part and fitting $880.", "expected": {"priority": "fast_track"}}
+{"id": "C-1013", "claim": "Phone screen cracked. Repair receipt $95 attached.", "expected": {"priority": "fast_track"}}
+{"id": "C-1014", "claim": "Hail dented the car bonnet and roof. Body shop estimate $4500.", "expected": {"priority": "standard"}}
+{"id": "C-1015", "claim": "Rear bumper dented in a car park. No one was hurt. Estimated repair $2750.", "expected": {"priority": "standard"}}
+{"id": "C-1016", "claim": "Fence panels blown down in high wind. Contractor quote $2550.", "expected": {"priority": "standard"}}
+{"id": "C-1017", "claim": "Side window broken during an attempted break-in. Nothing taken. Glazier quote $5700.", "expected": {"priority": "standard"}}
+{"id": "C-1018", "claim": "Garage door hit while reversing. Door still works. Estimate $3700.", "expected": {"priority": "standard"}}
+{"id": "C-1019", "claim": "Washing machine leaked and damaged the kitchen floor. The leak is fixed. Quote $1350.", "expected": {"priority": "standard"}}
+{"id": "C-1020", "claim": "Bike stolen from a locked shed. The shed door was forced. Value $3200.", "expected": {"priority": "standard"}}
+{"id": "C-1021", "claim": "Garage door hit while reversing. Door still works. Estimate $1450.", "expected": {"priority": "standard"}}
+{"id": "C-1022", "claim": "Laptop dropped and the screen cracked. Repair quote $3000.", "expected": {"priority": "standard"}}
+{"id": "C-1023", "claim": "Bike stolen from a locked shed. The shed door was forced. Value $2100.", "expected": {"priority": "standard"}}
+{"id": "C-1024", "claim": "Wing mirror knocked off on a narrow street. Part and fitting $355.", "expected": {"priority": "fast_track"}}
+{"id": "C-1025", "claim": "Garage door hit while reversing. Door still works. Estimate $2250.", "expected": {"priority": "standard"}}
+{"id": "C-1026", "claim": "Bike stolen from a locked shed. The shed door was forced. Value $1850.", "expected": {"priority": "standard"}}
+{"id": "C-1027", "claim": "Side window broken during an attempted break-in. Nothing taken. Glazier quote $3550.", "expected": {"priority": "standard"}}
+{"id": "C-1028", "claim": "Laptop dropped and the screen cracked. Repair quote $3350.", "expected": {"priority": "standard"}}
+{"id": "C-1029", "claim": "Laptop dropped and the screen cracked. Repair quote $1350.", "expected": {"priority": "standard"}}
+{"id": "C-1030", "claim": "Bike stolen from a locked shed. The shed door was forced. Value $5600.", "expected": {"priority": "standard"}}
+{"id": "C-1031", "claim": "Rear bumper dented in a car park. No one was hurt. Estimated repair $1350.", "expected": {"priority": "standard"}}
+{"id": "C-1032", "claim": "Spoiled food after a two-hour power cut. Receipts total $370.", "expected": {"priority": "fast_track"}}
+{"id": "C-1033", "claim": "Wing mirror knocked off on a narrow street. Part and fitting $845.", "expected": {"priority": "fast_track"}}
+{"id": "C-1034", "claim": "Fence panels blown down in high wind. Contractor quote $2450.", "expected": {"priority": "standard"}}
+{"id": "C-1035", "claim": "Washing machine leaked and damaged the kitchen floor. The leak is fixed. Quote $3450.", "expected": {"priority": "standard"}}
+{"id": "C-1036", "claim": "Laptop dropped and the screen cracked. Repair quote $4450.", "expected": {"priority": "standard"}}
+{"id": "C-1037", "claim": "Side window broken during an attempted break-in. Nothing taken. Glazier quote $4300.", "expected": {"priority": "standard"}}
+{"id": "C-1038", "claim": "A tree fell on the car while the driver was inside. The driver was taken to hospital with a broken arm.", "expected": {"priority": "urgent"}}
+{"id": "C-1039", "claim": "Hail dented the car bonnet and roof. Body shop estimate $1500.", "expected": {"priority": "standard"}}
+{"id": "C-1040", "claim": "Bike stolen from a locked shed. The shed door was forced. Value $2250.", "expected": {"priority": "standard"}}
+{"id": "C-1041", "claim": "Bike stolen from a locked shed. The shed door was forced. Value $1800.", "expected": {"priority": "standard"}}
+{"id": "C-1042", "claim": "A pipe burst under the upstairs bathroom overnight. Water came through the kitchen ceiling and the bedrooms are soaked. The family of four is staying with a neighbour tonight.", "expected": {"priority": "urgent"}}
+{"id": "C-1043", "claim": "Laptop dropped and the screen cracked. Repair quote $4200.", "expected": {"priority": "standard"}}
+{"id": "C-1044", "claim": "Hail dented the car bonnet and roof. Body shop estimate $2250.", "expected": {"priority": "standard"}}
+{"id": "C-1045", "claim": "Washing machine leaked and damaged the kitchen floor. The leak is fixed. Quote $4300.", "expected": {"priority": "standard"}}
+{"id": "C-1046", "claim": "Side window broken during an attempted break-in. Nothing taken. Glazier quote $2300.", "expected": {"priority": "standard"}}
+{"id": "C-1047", "claim": "Hail dented the car bonnet and roof. Body shop estimate $1300.", "expected": {"priority": "standard"}}
+{"id": "C-1048", "claim": "Windscreen chip from a stone on the motorway. Repair $620.", "expected": {"priority": "fast_track"}}
+{"id": "C-1049", "claim": "A carer reports that the policyholder, who uses a wheelchair, cannot leave the flat since the lift was damaged in a fire.", "expected": {"priority": "urgent"}}
+{"id": "C-1050", "claim": "Phone screen cracked. Repair receipt $175 attached.", "expected": {"priority": "fast_track"}}
+{"id": "C-1051", "claim": "Sunglasses lost on holiday. Receipt $760.", "expected": {"priority": "fast_track"}}
+{"id": "C-1052", "claim": "Sunglasses lost on holiday. Receipt $245.", "expected": {"priority": "fast_track"}}
+{"id": "C-1053", "claim": "Garage door hit while reversing. Door still works. Estimate $3650.", "expected": {"priority": "standard"}}
+{"id": "C-1054", "claim": "Spoiled food after a two-hour power cut. Receipts total $245.", "expected": {"priority": "fast_track"}}
+{"id": "C-1055", "claim": "Rear bumper dented in a car park. No one was hurt. Estimated repair $5900.", "expected": {"priority": "standard"}}
+{"id": "C-1056", "claim": "Garage door hit while reversing. Door still works. Estimate $2800.", "expected": {"priority": "standard"}}
+{"id": "C-1057", "claim": "Washing machine leaked and damaged the kitchen floor. The leak is fixed. Quote $2500.", "expected": {"priority": "standard"}}
+{"id": "C-1058", "claim": "Bike stolen from a locked shed. The shed door was forced. Value $5750.", "expected": {"priority": "standard"}}
+{"id": "C-1059", "claim": "Rear bumper dented in a car park. No one was hurt. Estimated repair $3050.", "expected": {"priority": "standard"}}
+{"id": "C-1060", "claim": "Side window broken during an attempted break-in. Nothing taken. Glazier quote $4650.", "expected": {"priority": "standard"}}
+{"id": "C-1061", "claim": "A kitchen fire spread to the living room. The fire service says the house is not safe to enter. The policyholder and two children are in a hotel.", "expected": {"priority": "urgent"}}
+{"id": "C-1062", "claim": "Side window broken during an attempted break-in. Nothing taken. Glazier quote $4250.", "expected": {"priority": "standard"}}
+{"id": "C-1063", "claim": "Fence panels blown down in high wind. Contractor quote $3100.", "expected": {"priority": "standard"}}
+{"id": "C-1064", "claim": "Hail dented the car bonnet and roof. Body shop estimate $5100.", "expected": {"priority": "standard"}}
+{"id": "C-1065", "claim": "Fence panels blown down in high wind. Contractor quote $5150.", "expected": {"priority": "standard"}}
+{"id": "C-1066", "claim": "Washing machine leaked and damaged the kitchen floor. The leak is fixed. Quote $1950.", "expected": {"priority": "standard"}}
+{"id": "C-1067", "claim": "Rear bumper dented in a car park. No one was hurt. Estimated repair $4700.", "expected": {"priority": "standard"}}
+{"id": "C-1068", "claim": "Side window broken during an attempted break-in. Nothing taken. Glazier quote $3450.", "expected": {"priority": "standard"}}
+{"id": "C-1069", "claim": "The boiler failed in January. The policyholder is 87, lives alone and has no heating.", "expected": {"priority": "urgent"}}
+{"id": "C-1070", "claim": "Rear bumper dented in a car park. No one was hurt. Estimated repair $4600.", "expected": {"priority": "standard"}}
+{"id": "C-1071", "claim": "Fence panels blown down in high wind. Contractor quote $4400.", "expected": {"priority": "standard"}}
+{"id": "C-1072", "claim": "Fence panels blown down in high wind. Contractor quote $2400.", "expected": {"priority": "standard"}}
+{"id": "C-1073", "claim": "Windscreen chip from a stone on the motorway. Repair $515.", "expected": {"priority": "fast_track"}}
+{"id": "C-1074", "claim": "Fence panels blown down in high wind. Contractor quote $3200.", "expected": {"priority": "standard"}}
+{"id": "C-1075", "claim": "Windscreen chip from a stone on the motorway. Repair $650.", "expected": {"priority": "fast_track"}}
+{"id": "C-1076", "claim": "Garage door hit while reversing. Door still works. Estimate $2500.", "expected": {"priority": "standard"}}
+{"id": "C-1077", "claim": "Bike stolen from a locked shed. The shed door was forced. Value $4400.", "expected": {"priority": "standard"}}
+{"id": "C-1078", "claim": "Side window broken during an attempted break-in. Nothing taken. Glazier quote $4900.", "expected": {"priority": "standard"}}
+{"id": "C-1079", "claim": "Rear bumper dented in a car park. No one was hurt. Estimated repair $5550.", "expected": {"priority": "standard"}}
+{"id": "C-1080", "claim": "Washing machine leaked and damaged the kitchen floor. The leak is fixed. Quote $4650.", "expected": {"priority": "standard"}}
+{"id": "C-1081", "claim": "Fence panels blown down in high wind. Contractor quote $3850.", "expected": {"priority": "standard"}}
+{"id": "C-1082", "claim": "Phone screen cracked. Repair receipt $290 attached.", "expected": {"priority": "fast_track"}}
+{"id": "C-1083", "claim": "Fence panels blown down in high wind. Contractor quote $1600.", "expected": {"priority": "standard"}}
+{"id": "C-1084", "claim": "Wing mirror knocked off on a narrow street. Part and fitting $325.", "expected": {"priority": "fast_track"}}
+{"id": "C-1085", "claim": "Storm damage tore off part of the roof. The council has told the family not to sleep in the house.", "expected": {"priority": "urgent"}}
+{"id": "C-1086", "claim": "Phone screen cracked. Repair receipt $755 attached.", "expected": {"priority": "fast_track"}}
+{"id": "C-1087", "claim": "Phone screen cracked. Repair receipt $405 attached.", "expected": {"priority": "fast_track"}}
+{"id": "C-1088", "claim": "Hail dented the car bonnet and roof. Body shop estimate $4800.", "expected": {"priority": "standard"}}
+{"id": "C-1089", "claim": "Sunglasses lost on holiday. Receipt $625.", "expected": {"priority": "fast_track"}}
+{"id": "C-1090", "claim": "Bike stolen from a locked shed. The shed door was forced. Value $4100.", "expected": {"priority": "standard"}}
+{"id": "C-1091", "claim": "Hail dented the car bonnet and roof. Body shop estimate $2300.", "expected": {"priority": "standard"}}
+{"id": "C-1092", "claim": "The roof is leaking into the loft and water is still coming in during the storm. The policyholder cannot reach a roofer until next week.", "expected": {"priority": "urgent"}}
+{"id": "C-1093", "claim": "Hail dented the car bonnet and roof. Body shop estimate $3300.", "expected": {"priority": "standard"}}
+{"id": "C-1094", "claim": "A delivery van hit the front wall and the cyclist on the pavement was injured.", "expected": {"priority": "urgent"}}
+{"id": "C-1095", "claim": "Washing machine leaked and damaged the kitchen floor. The leak is fixed. Quote $2500.", "expected": {"priority": "standard"}}
+{"id": "C-1096", "claim": "Garage door hit while reversing. Door still works. Estimate $5000.", "expected": {"priority": "standard"}}
+{"id": "C-1097", "claim": "Rear bumper dented in a car park. No one was hurt. Estimated repair $3900.", "expected": {"priority": "standard"}}
+{"id": "C-1098", "claim": "Hail dented the car bonnet and roof. Body shop estimate $3200.", "expected": {"priority": "standard"}}
+{"id": "C-1099", "claim": "Side window broken during an attempted break-in. Nothing taken. Glazier quote $2100.", "expected": {"priority": "standard"}}
+{"id": "C-1100", "claim": "Spoiled food after a two-hour power cut. Receipts total $405.", "expected": {"priority": "fast_track"}}
