@@ -13,7 +13,7 @@ import logging
 from collections.abc import Callable
 from pathlib import Path
 
-from harness import bedrock, graders, metrics
+from harness import bedrock, graders, metrics, preflight
 from harness.data import LAB_ROOT, load_cases, load_prompt, load_recording
 from harness.models import Case, CaseResult, EvalReport
 
@@ -105,6 +105,7 @@ def parse_args() -> argparse.Namespace:
 def main() -> None:
     args = parse_args()
     if args.live:
+        preflight.require(["A3", "B2", "B4"])
         logging.basicConfig(filename=LAB_ROOT / "live.log", level=logging.INFO)
     report = evaluate(args.prompt, args.runs, args.grader, args.live)
     print_runs(report)

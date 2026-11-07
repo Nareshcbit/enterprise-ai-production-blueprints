@@ -19,6 +19,7 @@ from typing import Any, Protocol
 TRIAGE_MODEL_ID = os.environ.get("TRIAGE_MODEL_ID", "us.anthropic.claude-haiku-4-5-20251001-v1:0")
 JUDGE_MODEL_ID = os.environ.get("JUDGE_MODEL_ID", "global.anthropic.claude-opus-4-5-20251101-v1:0")
 MAX_TOKENS = 400
+DEFAULT_REGION = "us-east-1"
 
 log = logging.getLogger("harness.live")
 
@@ -44,13 +45,18 @@ class ConverseClient(Protocol):
     def converse(self, **kwargs: Any) -> dict[str, Any]: ...
 
 
+def region() -> str:
+    """AWS_REGION, else AWS_DEFAULT_REGION, else us-east-1 (where the default inference profiles run)."""
+    return os.environ.get("AWS_REGION") or os.environ.get("AWS_DEFAULT_REGION") or DEFAULT_REGION
+
+
 def make_client() -> ConverseClient:
     """bedrock-runtime client: up to 8 attempts in adaptive mode (backoff with jitter on throttling)."""
     import boto3
     from botocore.config import Config
 
     config = Config(retries={"total_max_attempts": 8, "mode": "adaptive"})
-    return boto3.client("bedrock-runtime", config=config)
+    return boto3.client("bedrock-runtime", region_name=region(), config=config)
 
 
 def triage_request(system: str, claim: str, structured: bool) -> dict[str, Any]:

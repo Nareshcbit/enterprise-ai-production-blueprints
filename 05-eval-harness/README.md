@@ -63,6 +63,7 @@ harness/graders.py            A3   harness/metrics.py  B2, B4
 harness/judge.py              C2   harness/gate.py     D2
 harness/ci.py                 CI entry point: exit 1 blocks the merge
 harness/bedrock.py            live mode: Bedrock Converse, structured output via a forced tool
+harness/preflight.py          live mode: stops before any paid call if a needed step is unfinished
 harness/bedrock_eval.py       same v2 recordings graded by Amazon Bedrock Evaluations (opt-in)
 baselines/v2.json             per-case results of the last good prompt (written by make B4)
 ci/eval-gate.yml              example GitHub Actions job: copy it into your repo's .github/workflows/
@@ -72,7 +73,10 @@ tools/generate_synthetic.py   regenerates data/ and recordings/
 ## Live mode
 
 `make live` and `make live-judge` call Amazon Bedrock. You need AWS credentials and access to the models
-in your account. Defaults (override with environment variables):
+in your account. The region is `AWS_REGION`, else `AWS_DEFAULT_REGION`, else `us-east-1`. Finish the steps
+first (or copy `solutions/*.py` into `harness/`): a live run checks that steps A3, B2 and B4 (`make live`)
+or C2 (`make live-judge`) are done and stops before any Bedrock call if they are not.
+Defaults (override with environment variables):
 
 | Role | Variable | Default inference profile |
 |---|---|---|
@@ -84,6 +88,11 @@ attempts, with backoff and jitter on throttling. A full live run is 300 triage c
 pricing before you run it.
 
 Things that behave differently live:
+- **Your numbers will not match the page.** The page and `make` steps use synthetic recordings built to
+  tell the story. One live run (2026-11-06, us-east-1, default models, solutions) gave v4 a majority-of-3
+  pass rate of 86% ± 7%, not 94%: urgent recall was 100%, but 13 of 21 fast_track claims came back
+  `standard`. The judge agreed with the adjusters on 25 of 25, not 22 of 25. The method is the point:
+  run it on your own labeled cases, and expect a new model or prompt to move the numbers.
 - **Forced tool, not a guaranteed schema.** `toolChoice` makes the model call `record_triage`, but the
   input can still be off-schema; `parse_triage` catches that and the case fails. Some newer models reject
   a forced `toolChoice`; check the model's docs before overriding the model IDs.
