@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import argparse
 
-from harness import bedrock
+from harness import bedrock, preflight
 from harness.data import load_calibration, load_judge_recording, load_prompt
 from harness.judge import agreement, judge_is_trusted, parse_verdict
 
@@ -28,6 +28,8 @@ def main() -> None:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--live", action="store_true")
     args = p.parse_args()
+    if args.live:
+        preflight.require(["C2"])
     items = load_calibration()
     outputs = live_verdicts(items) if args.live else load_judge_recording()
     grades = {it["id"]: it["adjuster_grade"] for it in items}
