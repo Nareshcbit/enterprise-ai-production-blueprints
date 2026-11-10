@@ -1,0 +1,270 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >-
+  Refund agent on the Amazon Bedrock AgentCore harness. Pairs with the walkthrough
+  https://nmadiraju.com/posts/genai-how-agentcore-harness-works/ . Creates a harness with a prod endpoint,
+  a narrow execution role, managed memory under your own KMS key, a Gateway with a charge-lookup Lambda,
+  and a DynamoDB table standing in for the payment system. No real money moves.
+
+Parameters:
+  ModelId:
+    Type: String
+    Default: us.anthropic.claude-sonnet-4-6
+    Description: Bedrock model or inference profile ID. A us.* profile keeps inference in US Regions.
+  Instructions:
+    Type: String
+    Default: >-
+      You help customers with duplicate charges. Look up the order's charges first. If two charges have the
+      same amount and date, refund the later one with the refund tool. Never refund more than one charge per
+      order. Reply in two sentences.
+    Description: The system prompt. Changing it creates a new harness version (walkthrough step B1).
+  ProdVersion:
+    Type: String
+    Default: "1"
+    AllowedPattern: "^[1-9][0-9]{0,4}$"
+    Description: The harness version the prod endpoint serves. Move it after testing; move it back to roll back.
+
+Resources:
+  # ---------- your side: the payment system and the charge lookup ----------
+  PaymentsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions: [{AttributeName: refund_id, AttributeType: S}]
+      KeySchema: [{AttributeName: refund_id, KeyType: HASH}]
+
+  ChargesFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement: [{Effect: Allow, Principal: {Service: lambda.amazonaws.com}, Action: sts:AssumeRole}]
+      ManagedPolicyArns: [arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole]
+
+  ChargesFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Description: Read-only charge lookup, called by the harness through AgentCore Gateway.
+      Runtime: python3.12
+      Handler: index.handler
+      Timeout: 10
+      Role: !GetAtt ChargesFunctionRole.Arn
+      Code:
+        ZipFile: |
+          # Gateway passes the tool's arguments as the event, and the tool name in the client context.
+          CHARGES = {
+              "A-1042": [
+                  {"charge_id": "ch_87", "amount_cents": 4250, "date": "2026-11-02"},
+                  {"charge_id": "ch_88", "amount_cents": 4250, "date": "2026-11-02"},
+              ],
+              "A-2001": [{"charge_id": "ch_91", "amount_cents": 1999, "date": "2026-11-03"}],
+          }
+
+          def handler(event, context):
+              tool = context.client_context.custom.get("bedrockAgentCoreToolName", "")
+              if tool.split("___")[-1] != "lookup_charges":
+                  return {"error": f"unknown tool {tool}"}
+              order_id = event.get("order_id", "")
+              return {"order_id": order_id, "charges": CHARGES.get(order_id, [])}
+
+  # ---------- AgentCore Gateway: your API, presented to the AI as an MCP tool ----------
+  GatewayRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: {Service: bedrock-agentcore.amazonaws.com}
+            Action: sts:AssumeRole
+            Condition: {StringEquals: {"aws:SourceAccount": !Ref AWS::AccountId}}
+      Policies:
+        - PolicyName: invoke-charges-lookup
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement: [{Effect: Allow, Action: lambda:InvokeFunction, Resource: !GetAtt ChargesFunction.Arn}]
+
+  Gateway:
+    Type: AWS::BedrockAgentCore::Gateway
+    Properties:
+      Name: refund-tools
+      AuthorizerType: AWS_IAM
+      ProtocolType: MCP
+      RoleArn: !GetAtt GatewayRole.Arn
+
+  ChargesTarget:
+    Type: AWS::BedrockAgentCore::GatewayTarget
+    Properties:
+      GatewayIdentifier: !GetAtt Gateway.GatewayIdentifier
+      Name: charges
+      CredentialProviderConfigurations: [{CredentialProviderType: GATEWAY_IAM_ROLE}]
+      TargetConfiguration:
+        Mcp:
+          Lambda:
+            LambdaArn: !GetAtt ChargesFunction.Arn
+            ToolSchema:
+              InlinePayload:
+                - Name: lookup_charges
+                  Description: List the charges on one order, with charge ID, amount in cents and date.
+                  InputSchema:
+                    Type: object
+                    Properties: {order_id: {Type: string, Description: "Order ID, for example A-1042"}}
+                    Required: [order_id]
+
+  # ---------- your own key for memory (step B4). It can't be changed after creation ----------
+  MemoryKey:
+    Type: AWS::KMS::Key
+    Properties:
+      Description: Encrypts the refund harness's managed memory.
+      EnableKeyRotation: true
+      PendingWindowInDays: 7
+      KeyPolicy:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: AccountAdministersKeyThroughIam
+            Effect: Allow
+            Principal: {AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"}
+            Action: kms:*
+            Resource: "*"
+
+  # ---------- the execution role: AWS's sample, narrowed to this agent (step C2) ----------
+  HarnessRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${AWS::StackName}-BedrockAgentCore-harness"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: {Service: bedrock-agentcore.amazonaws.com}
+            Action: sts:AssumeRole
+            Condition: {StringEquals: {"aws:SourceAccount": !Ref AWS::AccountId}}
+      Policies:
+        - PolicyName: refund-harness
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: OneModel
+                Effect: Allow
+                Action: [bedrock:InvokeModel, bedrock:InvokeModelWithResponseStream]
+                Resource:
+                  - arn:aws:bedrock:*::foundation-model/*
+                  - !Sub "arn:aws:bedrock:${AWS::Region}:${AWS::AccountId}:inference-profile/${ModelId}"
+              - Sid: PullHarnessImage
+                Effect: Allow
+                Action: [ecr-public:GetAuthorizationToken, sts:GetServiceBearerToken]
+                Resource: "*"
+              - Sid: Traces
+                Effect: Allow
+                Action: [xray:PutTraceSegments, xray:PutTelemetryRecords, xray:GetSamplingRules, xray:GetSamplingTargets]
+                Resource: "*"
+              - Sid: LogGroups
+                Effect: Allow
+                Action: [logs:CreateLogGroup, logs:DescribeLogStreams]
+                Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/bedrock-agentcore/runtimes/*"
+              - Sid: DescribeLogGroups
+                Effect: Allow
+                Action: logs:DescribeLogGroups
+                Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:*"
+              - Sid: LogStreams
+                Effect: Allow
+                Action: [logs:CreateLogStream, logs:PutLogEvents]
+                Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/bedrock-agentcore/runtimes/*:log-stream:*"
+              - Sid: LogsResourcePolicy
+                Effect: Allow
+                Action: logs:PutResourcePolicy
+                Resource: "*"
+              - Sid: Metrics
+                Effect: Allow
+                Action: cloudwatch:PutMetricData
+                Resource: "*"
+                Condition: {StringEquals: {"cloudwatch:namespace": bedrock-agentcore}}
+              - Sid: WorkloadIdentity
+                Effect: Allow
+                Action: [bedrock-agentcore:GetWorkloadAccessToken, bedrock-agentcore:GetWorkloadAccessTokenForJWT]
+                Resource:
+                  - !Sub "arn:aws:bedrock-agentcore:${AWS::Region}:${AWS::AccountId}:workload-identity-directory/default"
+                  - !Sub "arn:aws:bedrock-agentcore:${AWS::Region}:${AWS::AccountId}:workload-identity-directory/default/workload-identity/harness_*"
+              - Sid: ManagedMemory
+                Effect: Allow
+                Action: [bedrock-agentcore:CreateEvent, bedrock-agentcore:DeleteEvent, bedrock-agentcore:GetEvent,
+                         bedrock-agentcore:ListEvents, bedrock-agentcore:RetrieveMemoryRecords]
+                # AWS's sample says memory/harness_*; the managed memory is really named after the harness.
+                Resource: !Sub "arn:aws:bedrock-agentcore:${AWS::Region}:${AWS::AccountId}:memory/refund_agent-*"
+              - Sid: MemoryKeyThroughAgentCoreOnly
+                Effect: Allow
+                Action: [kms:Decrypt, kms:GenerateDataKey, kms:DescribeKey]
+                Resource: !GetAtt MemoryKey.Arn
+                Condition: {StringEquals: {"kms:ViaService": !Sub "bedrock-agentcore.${AWS::Region}.amazonaws.com"}}
+              - Sid: OneGateway
+                Effect: Allow
+                Action: bedrock-agentcore:InvokeGateway
+                Resource: !GetAtt Gateway.GatewayArn
+
+  # ---------- the harness (steps A1, B1, B2, B4, D3) ----------
+  Harness:
+    Type: AWS::BedrockAgentCore::Harness
+    DependsOn: ChargesTarget
+    Properties:
+      HarnessName: refund_agent
+      ExecutionRoleArn: !GetAtt HarnessRole.Arn
+      Model:
+        BedrockModelConfig: {ModelId: !Ref ModelId}
+      SystemPrompt: [{Text: !Ref Instructions}]
+      Tools:
+        - Type: agentcore_gateway
+          Name: charges_gw
+          Config:
+            AgentCoreGateway:
+              GatewayArn: !GetAtt Gateway.GatewayArn
+              OutboundAuth: {AwsIam: {}}
+        - Type: inline_function
+          Name: refund
+          Config:
+            InlineFunction:
+              Description: >-
+                Refund one charge. Your app asks a person to approve, pays, and returns the refund.
+                Use only for a duplicate charge found with lookup_charges.
+              InputSchema:
+                type: object
+                properties:
+                  order_id: {type: string}
+                  charge_id: {type: string}
+                  amount_cents: {type: integer}
+                required: [order_id, charge_id, amount_cents]
+      Memory:
+        ManagedMemoryConfiguration:
+          Strategies: [SEMANTIC, SUMMARIZATION]
+          EventExpiryDuration: 30
+          EncryptionKeyArn: !GetAtt MemoryKey.Arn
+      Truncation: {Strategy: summarization}
+      MaxIterations: 20
+      TimeoutSeconds: 600
+      Environment:
+        AgentCoreRuntimeEnvironment:
+          LifecycleConfiguration: {IdleRuntimeSessionTimeout: 900, MaxLifetime: 3600}
+
+  ProdEndpoint:
+    Type: AWS::BedrockAgentCore::HarnessEndpoint
+    Properties:
+      HarnessId: !GetAtt Harness.HarnessId
+      EndpointName: prod
+      TargetVersion: !Ref ProdVersion
+      Description: Production callers use this. Move it only after testing a new version.
+
+Outputs:
+  HarnessArn:
+    Value: !GetAtt Harness.Arn
+  HarnessId:
+    Value: !GetAtt Harness.HarnessId
+    Export: {Name: !Sub "${AWS::StackName}-HarnessId"}
+  HarnessVersion:
+    Value: !GetAtt Harness.Version
+  RuntimeArn:
+    Value: !GetAtt Harness.Environment.AgentCoreRuntimeEnvironment.AgentRuntimeArn
+    Export: {Name: !Sub "${AWS::StackName}-RuntimeArn"}
+  MemoryArn:
+    Value: !GetAtt Harness.Memory.ManagedMemoryConfiguration.Arn
+  PaymentsTable:
+    Value: !Ref PaymentsTable
+  GatewayArn:
+    Value: !GetAtt Gateway.GatewayArn

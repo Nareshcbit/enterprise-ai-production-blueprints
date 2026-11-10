@@ -1,0 +1,132 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >-
+  Alarms and audit for the refund harness (walkthrough step D3). Metric names and dimensions are the ones the
+  harness actually emitted in a live test (Nov 9, 2026): request metrics are published under the underlying
+  AgentCore Runtime, Name = harness_<harness name>::<endpoint>, Operation = InvokeAgentRuntime.
+
+Parameters:
+  HarnessStack:
+    Type: String
+    Default: refund-harness
+    Description: The stack created from infra/harness.yaml.
+  HarnessName:
+    Type: String
+    Default: refund_agent
+  EndpointName:
+    Type: String
+    Default: prod
+  AlarmEmail:
+    Type: String
+    Default: ""
+    Description: Optional. An email address to notify; leave empty to create alarms without notifications.
+
+Conditions:
+  Notify: !Not [!Equals [!Ref AlarmEmail, ""]]
+
+Resources:
+  AlarmTopic:
+    Type: AWS::SNS::Topic
+    Condition: Notify
+    Properties:
+      Subscription: [{Protocol: email, Endpoint: !Ref AlarmEmail}]
+
+  # ---------- alarms on the prod endpoint ----------
+  RequestErrors:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: Harness requests on the prod endpoint are failing.
+      Namespace: AWS/Bedrock-AgentCore
+      MetricName: Errors
+      Dimensions:
+        - {Name: Name, Value: !Sub "harness_${HarnessName}::${EndpointName}"}
+        - {Name: Operation, Value: InvokeAgentRuntime}
+        - {Name: Resource, Value: {"Fn::ImportValue": !Sub "${HarnessStack}-RuntimeArn"}}
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: !If [Notify, [!Ref AlarmTopic], !Ref AWS::NoValue]
+
+  RequestThrottles:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: Harness requests are being throttled (check the active-session and request quotas).
+      Namespace: AWS/Bedrock-AgentCore
+      MetricName: Throttles
+      Dimensions:
+        - {Name: Name, Value: !Sub "harness_${HarnessName}::${EndpointName}"}
+        - {Name: Operation, Value: InvokeAgentRuntime}
+        - {Name: Resource, Value: {"Fn::ImportValue": !Sub "${HarnessStack}-RuntimeArn"}}
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: !If [Notify, [!Ref AlarmTopic], !Ref AWS::NoValue]
+
+  MemoryAccessErrors:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: >-
+        The harness can't read or write its memory (in testing, a wrongly scoped execution role showed up here
+        as UserErrors on ListEvents).
+      Namespace: AWS/Bedrock-AgentCore
+      MetricName: UserErrors
+      Dimensions:
+        - {Name: EndpointQualifier, Value: !Ref EndpointName}
+        - {Name: HarnessId, Value: {"Fn::ImportValue": !Sub "${HarnessStack}-HarnessId"}}
+        - {Name: Operation, Value: ListEvents}
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: !If [Notify, [!Ref AlarmTopic], !Ref AWS::NoValue]
+
+  # ---------- audit: harness invokes are CloudTrail data events on the Runtime ----------
+  TrailBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Delete
+    Properties:
+      PublicAccessBlockConfiguration:
+        {BlockPublicAcls: true, BlockPublicPolicy: true, IgnorePublicAcls: true, RestrictPublicBuckets: true}
+      LifecycleConfiguration: {Rules: [{Status: Enabled, ExpirationInDays: 30}]}
+
+  TrailBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref TrailBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: {Service: cloudtrail.amazonaws.com}
+            Action: s3:GetBucketAcl
+            Resource: !GetAtt TrailBucket.Arn
+          - Effect: Allow
+            Principal: {Service: cloudtrail.amazonaws.com}
+            Action: s3:PutObject
+            Resource: !Sub "${TrailBucket.Arn}/AWSLogs/${AWS::AccountId}/*"
+            Condition: {StringEquals: {"s3:x-amz-acl": bucket-owner-full-control}}
+
+  HarnessTrail:
+    Type: AWS::CloudTrail::Trail
+    DependsOn: TrailBucketPolicy
+    Properties:
+      S3BucketName: !Ref TrailBucket
+      IsLogging: true
+      IncludeGlobalServiceEvents: false
+      IsMultiRegionTrail: false
+      AdvancedEventSelectors:
+        - Name: Harness invokes (InvokeAgentRuntime on the underlying Runtime)
+          FieldSelectors:
+            - {Field: eventCategory, Equals: [Data]}
+            - {Field: resources.type, Equals: ["AWS::BedrockAgentCore::Runtime"]}
+
+Outputs:
+  TrailBucket:
+    Value: !Ref TrailBucket
