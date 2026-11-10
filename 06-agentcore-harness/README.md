@@ -23,7 +23,7 @@ you're done.**
 | Bedrock model | `us.anthropic.claude-sonnet-4-6` | Already in Bedrock | The harness, with its execution role |
 | DynamoDB `payments` | Stands in for the payment system. No real money moves | `PaymentsTable` | Your app, after a person approves |
 | KMS key | Encrypts memory; can't be changed after creation | `MemoryKey` | AgentCore, on your behalf |
-| IAM roles | The harness execution role (narrow) and the Gateway role | `HarnessRole`, `GatewayRole` | Assumed by AgentCore |
+| IAM roles | The harness execution role (narrow), the Gateway role and the Lambda's own role | `HarnessRole`, `GatewayRole`, `ChargesFunctionRole` | Assumed by AgentCore and Lambda |
 | CloudWatch | Metrics, alarms, and traces | Automatic; alarms in `ops/alarms.yaml` | |
 
 ## One request, on the wire
@@ -48,7 +48,7 @@ named endpoint needs IAM permission on both the harness ARN and the endpoint ARN
 
 - An AWS account and credentials that can create IAM roles, KMS keys, Lambda, DynamoDB and AgentCore resources.
 - Bedrock model access to Claude Sonnet 4.6 in us-east-1 (the `us.` inference profile).
-- Python 3.12. **boto3 1.43.126 or later**: older releases have no harness endpoints and no `qualifier`.
+- Python 3.12. **boto3 1.43.32 or later**: 1.43.31 and earlier have no harness endpoints and no `qualifier`. The kit pins 1.43.126, the version it was tested with.
 
 ## Quick start
 
