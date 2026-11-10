@@ -11,7 +11,7 @@ OUT = $(AWS) cloudformation describe-stacks --stack-name $(STACK) --query "Stack
 
 .PHONY: setup test lint deploy ops A1 B1 B1-promote B1-rollback B2 B4 C2 D1 D2 D3 teardown
 
-setup:        ## install dependencies (boto3 1.43.126 or later is needed for harness endpoints)
+setup:        ## install dependencies (harness endpoints need boto3 1.43.32 or later; tested with 1.43.126)
 	$(PY) -m pip install -r requirements.txt
 
 test:         ## unit tests, offline
