@@ -1,0 +1,22 @@
+$ diff docker/Dockerfile.v2 docker/Dockerfile.v2c
+# host: CodeBuild x86 standard:7.0
+5c5
+< RUN mvn -B -q dependency:go-offline
+---
+> RUN --mount=type=cache,target=/root/.m2 mvn -B -q dependency:go-offline
+7c7
+< RUN mvn -B -q package -DskipTests
+---
+> RUN --mount=type=cache,target=/root/.m2 mvn -B -q package -DskipTests
+$ docker build -q -f docker/Dockerfile.v2c -t pf:v2c .
+sha256:d192b67f6ba15ba510144d7d180b86b71aa31a73457d9cfd36ae21b9a47efbac
+$ for t in pf:v2 pf:v2c; do echo "$t $(docker image inspect --format '{{.Size}}' $t) bytes"; done
+pf:v2 953095778 bytes
+pf:v2c 729005414 bytes
+$ docker run --rm --entrypoint du pf:v2 -sh /root/.m2
+224M	/root/.m2
+$ docker run --rm --entrypoint ls pf:v2c -A /root/.m2
+ls: cannot access '/root/.m2': No such file or directory
+$ docker buildx du --verbose --filter type=exec.cachemount | grep -E '^(Description|Size):'
+Size:         224.1MB
+Description:  cached mount /root/.m2 from exec /bin/sh -c mvn -B -q dependency:go-offline with id "//root/.m2"

@@ -1,0 +1,41 @@
+$ diff docker/Dockerfile.v5 docker/Dockerfile.v6
+# host: CodeBuild x86 standard:7.0
+8c8
+< FROM gcr.io/distroless/java21-debian13
+---
+> FROM gcr.io/distroless/java21-debian13:nonroot
+$ docker build -q -f docker/Dockerfile.v6 -t pf:v6 .
+sha256:83bd6658b943990cbf7e64fc8458f5d7aa601af56157395cd88ca1e8795f7847
+$ docker image inspect --format '{{.Config.User}}' pf:v6
+65532
+$ docker run -d --name v6 -p 8080:8080 pf:v6
+c52cb26782c6ac1858a3b9843a0d9e7fe7c9887573b54e46870b058b02565c3b
+$ timeout 90 sh -c 'until curl -sf localhost:8080/actuator/health; do sleep 1; done'; echo
+{"status":"UP"}
+$ curl -s -XPOST -H 'Content-Type: application/json' -d '{"fromAccount":"A","toAccount":"B","amount":10}' localhost:8080/payments; echo
+{"paymentId":"e69798ab-a2ff-4ab2-b045-1fe8e53bb3d4","status":"ACCEPTED"}
+$ ps -o uid=,comm= -p "$(docker inspect -f '{{.State.Pid}}' v6)"
+65532 java
+$ docker rm -f v6
+v6
+$ cat ../k8s/payflow-pod.yaml
+# The kubelet refuses to start the container if the image would run as uid 0.
+# A numeric USER (distroless :nonroot sets 65532) lets it verify that.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: payments-api
+spec:
+  securityContext:
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
+  containers:
+    - name: payments-api
+      image: <account>.dkr.ecr.us-east-1.amazonaws.com/containers-lab/payflow:v6
+      ports:
+        - containerPort: 8080
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop: ["ALL"]

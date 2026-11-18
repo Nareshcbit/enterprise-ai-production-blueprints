@@ -1,0 +1,18 @@
+$ diff docker/Dockerfile.v6 docker/Dockerfile.v7
+# host: CodeBuild x86 standard:7.0
+1c1
+< FROM public.ecr.aws/docker/library/maven:3.9-eclipse-temurin-21 AS build
+---
+> FROM public.ecr.aws/docker/library/maven:3.9-eclipse-temurin-21@sha256:99e61abcff91a9b1333463bd8451fb18495d6eba9250ac66a338b518f8278320 AS build
+8c8
+< FROM gcr.io/distroless/java21-debian13:nonroot
+---
+> FROM gcr.io/distroless/java21-debian13:nonroot@sha256:6b60e44d652d66a9e2e584364c96adac4df7133674b2834b6f71741b7cdb1ff3
+$ docker buildx imagetools inspect public.ecr.aws/docker/library/maven:3.9-eclipse-temurin-21 --format '{{.Manifest.Digest}}'; echo
+sha256:99e61abcff91a9b1333463bd8451fb18495d6eba9250ac66a338b518f8278320
+$ docker buildx imagetools inspect gcr.io/distroless/java21-debian13:nonroot --format '{{.Manifest.Digest}}'; echo
+sha256:6b60e44d652d66a9e2e584364c96adac4df7133674b2834b6f71741b7cdb1ff3
+$ docker build -q -f docker/Dockerfile.v7 -t pf:v7 .
+sha256:83bd6658b943990cbf7e64fc8458f5d7aa601af56157395cd88ca1e8795f7847
+$ docker image inspect --format '{{.Config.User}} {{.Size}}' pf:v7
+65532 257628339

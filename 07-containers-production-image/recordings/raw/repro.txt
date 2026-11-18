@@ -1,0 +1,29 @@
+$ for run in a b; do \
+  docker buildx build --builder bk --no-cache --provenance=false --sbom=false --platform linux/amd64 \
+    -f docker/Dockerfile.v7 --metadata-file /tmp/plain-$run.json \
+    --output type=image,name=$REPO:repro-plain-$run,push=true . > /dev/null 2>&1; \
+  jq -r '."containerimage.digest"' /tmp/plain-$run.json; \
+done
+# host: CodeBuild x86 standard:7.0
+sha256:195956111e349525adede45a44098084647807b70f5c76cd1400262aa52c7d55
+sha256:62e05681b2329d0483db028926b48870f122454239445bd26e8d81792ce93d96
+$ diff <(docker buildx imagetools inspect --raw $REPO:repro-plain-a | jq -r '.config.digest, .layers[].digest') \
+     <(docker buildx imagetools inspect --raw $REPO:repro-plain-b | jq -r '.config.digest, .layers[].digest')
+1c1
+< sha256:45ecf31a63b8aa45b5e6c17b1996e8d01e980763abf8acb4e8487b47e04e0856
+---
+> sha256:2bbe365e1dc20030f525de7615c90507cb0b0af61a263b580f14220732d1e888
+36c36
+< sha256:b42c2707b4394a29214888e8613948e88e9596be73fc6a39e4e57e45b669e516
+---
+> sha256:5618a302650e6ff5e165417f54b48026a54d6559cd565bcffb86bd89cfdf8c50
+$ export SOURCE_DATE_EPOCH=$(git log -1 --format=%ct); echo $SOURCE_DATE_EPOCH
+1795001451
+$ for run in a b; do \
+  docker buildx build --builder bk --no-cache --provenance=false --sbom=false --platform linux/amd64 \
+    -f docker/Dockerfile.v7 --metadata-file /tmp/epoch-$run.json \
+    --output type=image,name=$REPO:repro-epoch-$run,push=true,rewrite-timestamp=true . > /dev/null 2>&1; \
+  jq -r '."containerimage.digest"' /tmp/epoch-$run.json; \
+done
+sha256:f346d4a807cc9b70639f8ae9f482fe3a388d35b919b2cec0ea52f4fb44adb374
+sha256:f346d4a807cc9b70639f8ae9f482fe3a388d35b919b2cec0ea52f4fb44adb374

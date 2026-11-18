@@ -1,0 +1,15 @@
+$ trivy() { docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v "$HOME/.cache/trivy:/root/.cache/trivy" \
+  public.ecr.aws/aquasecurity/trivy:0.76.2 "$@"; }
+# host: CodeBuild x86 standard:7.0
+$ trivy --version
+Version: 0.76.2
+$ export TRIVY_DB_REPOSITORY=public.ecr.aws/aquasecurity/trivy-db:2 TRIVY_JAVA_DB_REPOSITORY=public.ecr.aws/aquasecurity/trivy-java-db:1
+$ for t in v3 v4 v5; do \
+  trivy image -q --scanners vuln --db-repository $TRIVY_DB_REPOSITORY --java-db-repository $TRIVY_JAVA_DB_REPOSITORY \
+    --format json pf:$t > /tmp/scan-$t.json; \
+done
+$ python3 ../tools/trivy_summary.py /tmp/scan-v3.json /tmp/scan-v4.json /tmp/scan-v5.json
+image     total    os  os-pkgs  java  CRIT  HIGH   MED   LOW
+pf:v3       343   171       58   172    18    77   201    47
+pf:v4       137    89       39    48     8    17   100    12
+pf:v5       134    87       11    47     8    25    71    24

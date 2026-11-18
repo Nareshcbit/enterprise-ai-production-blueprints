@@ -1,0 +1,16 @@
+$ uname -m
+# host: CodeBuild x86 standard:7.0
+x86_64
+$ docker tag pf:v6 $REPO:v6-amd64-only
+$ docker push -q $REPO:v6-amd64-only
+<account>.dkr.ecr.us-east-1.amazonaws.com/containers-lab/payflow:v6-amd64-only
+$ uname -m
+# host: CodeBuild Arm
+aarch64
+$ docker pull -q $REPO:v6-amd64-only
+<account>.dkr.ecr.us-east-1.amazonaws.com/containers-lab/payflow:v6-amd64-only
+$ docker image inspect --format '{{.Os}}/{{.Architecture}}' $REPO:v6-amd64-only
+linux/amd64
+$ docker run --rm $REPO:v6-amd64-only
+WARNING: The requested image's platform (linux/amd64) does not match the detected host platform (linux/arm64/v8) and no specific platform was requested
+exec /usr/bin/java: exec format error

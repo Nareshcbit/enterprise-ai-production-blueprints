@@ -1,0 +1,28 @@
+$ docker run --privileged --rm public.ecr.aws/vend/tonistiigi/binfmt:latest --install arm64 > /dev/null 2>&1; echo "binfmt rc=$?"
+# host: CodeBuild x86 standard:7.0
+binfmt rc=0
+$ docker buildx create --name bk --driver docker-container --driver-opt image=public.ecr.aws/vend/moby/buildkit:buildx-stable-1 --use
+bk
+$ docker buildx inspect --bootstrap bk | grep -E '^(Platforms|BuildKit version):'
+#1 [internal] booting buildkit
+#1 pulling image public.ecr.aws/vend/moby/buildkit:buildx-stable-1
+#1 pulling image public.ecr.aws/vend/moby/buildkit:buildx-stable-1 1.8s done
+#1 creating container buildx_buildkit_bk0
+#1 creating container buildx_buildkit_bk0 0.8s done
+#1 DONE 2.6s
+BuildKit version:      v0.34.2
+Platforms:             linux/amd64, linux/amd64/v2, linux/amd64/v3, linux/amd64/v4, linux/arm64, linux/386
+$ time docker buildx build --builder bk --no-cache --quiet --platform linux/amd64 -f docker/Dockerfile.v6 \
+  -t $REPO:v6-amd64 --push .
+sha256:1fa6fa5aad8d4123c1dcbddacd127c543ea402ee7ce00288c069476d92412841
+
+real	0m37.013s
+user	0m0.154s
+sys	0m0.048s
+$ time docker buildx build --builder bk --no-cache --quiet --platform linux/arm64 -f docker/Dockerfile.v6 \
+  -t $REPO:v6-arm64-qemu --push .
+sha256:c73cab44156916655035d986a19ed7810a2ab514411f70073ecd12cd7d220c06
+
+real	3m8.750s
+user	0m0.245s
+sys	0m0.104s

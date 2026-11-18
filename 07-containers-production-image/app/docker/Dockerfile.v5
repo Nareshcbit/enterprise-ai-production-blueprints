@@ -1,0 +1,11 @@
+FROM public.ecr.aws/docker/library/maven:3.9-eclipse-temurin-21 AS build
+WORKDIR /app
+COPY pom.xml .
+RUN --mount=type=cache,target=/root/.m2 mvn -B -q dependency:go-offline
+COPY src ./src
+RUN --mount=type=cache,target=/root/.m2 mvn -B -q package -DskipTests
+
+FROM gcr.io/distroless/java21-debian13
+COPY --from=build /app/target/payments-api.jar /app/payments-api.jar
+EXPOSE 8080
+CMD ["/app/payments-api.jar"]

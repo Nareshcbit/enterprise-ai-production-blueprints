@@ -1,0 +1,9 @@
+FROM public.ecr.aws/docker/library/maven:3.9-eclipse-temurin-21
+RUN apt-get update && apt-get install -y curl
+WORKDIR /app
+COPY pom.xml .
+RUN --mount=type=cache,target=/root/.m2 mvn -B -q dependency:go-offline
+COPY . .
+RUN --mount=type=cache,target=/root/.m2 mvn -B -q package -DskipTests
+EXPOSE 8080
+CMD ["java", "-jar", "target/payments-api.jar"]

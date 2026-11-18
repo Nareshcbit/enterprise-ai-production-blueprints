@@ -1,0 +1,3 @@
+FROM public.ecr.aws/docker/library/eclipse-temurin:21-jre
+COPY settings.xml /root/.m2/settings.xml
+RUN echo "fetched private packages" && rm /root/.m2/settings.xml

@@ -1,0 +1,7 @@
+.git
+target
+.env
+*.md
+settings.xml
+docker
+local-data

@@ -1,0 +1,35 @@
+$ diff docker/Dockerfile.v4 docker/Dockerfile.v5
+# host: CodeBuild x86 standard:7.0
+8c8
+< FROM public.ecr.aws/docker/library/eclipse-temurin:21-jre
+---
+> FROM gcr.io/distroless/java21-debian13
+11c11
+< CMD ["java", "-jar", "/app/payments-api.jar"]
+---
+> CMD ["/app/payments-api.jar"]
+$ docker build -q -f docker/Dockerfile.v5 -t pf:v5 .
+sha256:0fd2b28f6a1189ed1630906438c715cc3d160b9c589dc0df4ca3f0966d9d86cc
+$ for t in pf:v4 pf:v5; do echo "$t $(docker image inspect --format '{{.Size}}' $t) bytes"; done
+pf:v4 385394483 bytes
+pf:v5 257628339 bytes
+$ docker run --rm --entrypoint sh pf:v4 -c 'dpkg-query -W | wc -l'
+140
+$ docker create --name x5 pf:v5 > /dev/null
+$ docker export x5 | tar -t | grep '^var/lib/dpkg/status.d/' | grep -vc -e md5sums -e '/$'
+25
+$ docker rm x5 > /dev/null
+$ docker run --rm --entrypoint sh pf:v5 -c 'echo I have a shell'
+docker: Error response from daemon: failed to create task for container: failed to create shim task: OCI runtime create failed: runc create failed: unable to start container process: error during container init: exec: "sh": executable file not found in $PATH
+
+Run 'docker run --help' for more information
+$ docker run -d --name v5 pf:v5 > /dev/null
+$ docker run --rm --pid=container:v5 public.ecr.aws/docker/library/busybox:1.37 \
+  sh -c 'ps -o pid,user,args; ls -l /proc/1/root/app'
+PID   USER     COMMAND
+    1 root     /usr/bin/java -jar /app/payments-api.jar
+   25 root     sh -c ps -o pid,user,args; ls -l /proc/1/root/app
+   33 root     ps -o pid,user,args
+total 64040
+-rw-r--r--    1 root     root      65576606 Nov  1 00:00 payments-api.jar
+$ docker rm -f v5 > /dev/null
