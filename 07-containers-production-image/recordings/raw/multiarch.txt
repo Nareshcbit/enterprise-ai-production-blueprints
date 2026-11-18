@@ -1,0 +1,92 @@
+$ docker run --privileged --rm public.ecr.aws/vend/tonistiigi/binfmt:latest --install arm64 > /dev/null 2>&1; echo "binfmt rc=$?"
+# host: CodeBuild x86 standard:7.0
+binfmt rc=0
+$ docker buildx create --name bk --driver docker-container --driver-opt image=public.ecr.aws/vend/moby/buildkit:buildx-stable-1 --use
+bk
+$ docker buildx inspect --bootstrap bk | grep -E '^(Platforms|BuildKit version):'
+#1 [internal] booting buildkit
+#1 pulling image public.ecr.aws/vend/moby/buildkit:buildx-stable-1
+#1 pulling image public.ecr.aws/vend/moby/buildkit:buildx-stable-1 1.8s done
+#1 creating container buildx_buildkit_bk0
+#1 creating container buildx_buildkit_bk0 0.8s done
+#1 DONE 2.6s
+BuildKit version:      v0.34.2
+Platforms:             linux/amd64, linux/amd64/v2, linux/amd64/v3, linux/amd64/v4, linux/arm64, linux/386
+$ time docker buildx build --builder bk --no-cache --quiet --platform linux/amd64 -f docker/Dockerfile.v6 \
+  -t $REPO:v6-amd64 --push .
+sha256:1fa6fa5aad8d4123c1dcbddacd127c543ea402ee7ce00288c069476d92412841
+
+real	0m37.013s
+user	0m0.154s
+sys	0m0.048s
+$ time docker buildx build --builder bk --no-cache --quiet --platform linux/arm64 -f docker/Dockerfile.v6 \
+  -t $REPO:v6-arm64-qemu --push .
+sha256:c73cab44156916655035d986a19ed7810a2ab514411f70073ecd12cd7d220c06
+
+real	3m8.750s
+user	0m0.245s
+sys	0m0.104s
+$ docker buildx create --name bk --driver docker-container --driver-opt image=public.ecr.aws/vend/moby/buildkit:buildx-stable-1 --use
+# host: CodeBuild Arm
+bk
+$ docker buildx inspect --bootstrap bk | grep -E '^(Platforms|BuildKit version):'
+#1 [internal] booting buildkit
+#1 pulling image public.ecr.aws/vend/moby/buildkit:buildx-stable-1
+#1 pulling image public.ecr.aws/vend/moby/buildkit:buildx-stable-1 2.0s done
+#1 creating container buildx_buildkit_bk0
+#1 creating container buildx_buildkit_bk0 1.3s done
+#1 DONE 3.3s
+BuildKit version:      v0.34.2
+Platforms:             linux/arm64, linux/arm/v7, linux/arm/v6
+$ time docker buildx build --builder bk --no-cache --quiet --platform linux/arm64 -f docker/Dockerfile.v6 \
+  -t $REPO:v6-arm64 --push .
+sha256:5ca212bc4ce7308e59f26611f5158c593675023046213bc0551bcbe70e1c50c9
+
+real	0m37.293s
+user	0m0.209s
+sys	0m0.042s
+$ docker buildx imagetools create -t $REPO:v6 $REPO:v6-amd64 $REPO:v6-arm64
+#1 [internal] pushing <account>.dkr.ecr.us-east-1.amazonaws.com/containers-lab/payflow
+#1 0.000 copying sha256:9807d11caa1777461f97b99c48a89853f7d853f09a1f91e83bbfcac881ce1359 from <account>.dkr.ecr.us-east-1.amazonaws.com/containers-lab/payflow:v6-amd64 to <account>.dkr.ecr.us-east-1.amazonaws.com/containers-lab/payflow
+#1 0.000 copying sha256:38e48c0e39cb13091513ebf806efd16efbf0ef2610a6514bbd4cd09cd21bb5b8 from <account>.dkr.ecr.us-east-1.amazonaws.com/containers-lab/payflow:v6-arm64 to <account>.dkr.ecr.us-east-1.amazonaws.com/containers-lab/payflow
+#1 0.000 copying sha256:7acadbbcbd5e3cd3eca77ea8e59b7a955f2a400384865491a454f627843d2340 from <account>.dkr.ecr.us-east-1.amazonaws.com/containers-lab/payflow:v6-arm64 to <account>.dkr.ecr.us-east-1.amazonaws.com/containers-lab/payflow
+#1 0.000 copying sha256:ce82d91420ec428927c518d754b85e9920d20db333d7ead4c3d95527a8858a52 from <account>.dkr.ecr.us-east-1.amazonaws.com/containers-lab/payflow:v6-amd64 to <account>.dkr.ecr.us-east-1.amazonaws.com/containers-lab/payflow
+#1 0.531 pushing sha256:57358cdd0c518f93b2ea6b65ca1b2794af02cd30e10dce697059272b985ace3a to <account>.dkr.ecr.us-east-1.amazonaws.com/containers-lab/payflow:v6
+#1 DONE 0.7s
+$ docker buildx imagetools inspect $REPO:v6
+Name:      <account>.dkr.ecr.us-east-1.amazonaws.com/containers-lab/payflow:v6
+MediaType: application/vnd.oci.image.index.v1+json
+Digest:    sha256:57358cdd0c518f93b2ea6b65ca1b2794af02cd30e10dce697059272b985ace3a
+           
+Manifests: 
+  Name:        <account>.dkr.ecr.us-east-1.amazonaws.com/containers-lab/payflow:v6@sha256:9807d11caa1777461f97b99c48a89853f7d853f09a1f91e83bbfcac881ce1359
+  MediaType:   application/vnd.oci.image.manifest.v1+json
+  Platform:    linux/amd64
+               
+  Name:        <account>.dkr.ecr.us-east-1.amazonaws.com/containers-lab/payflow:v6@sha256:ce82d91420ec428927c518d754b85e9920d20db333d7ead4c3d95527a8858a52
+  MediaType:   application/vnd.oci.image.manifest.v1+json
+  Platform:    unknown/unknown
+  Annotations: 
+    vnd.docker.reference.digest: sha256:9807d11caa1777461f97b99c48a89853f7d853f09a1f91e83bbfcac881ce1359
+    vnd.docker.reference.type:   attestation-manifest
+               
+  Name:        <account>.dkr.ecr.us-east-1.amazonaws.com/containers-lab/payflow:v6@sha256:7acadbbcbd5e3cd3eca77ea8e59b7a955f2a400384865491a454f627843d2340
+  MediaType:   application/vnd.oci.image.manifest.v1+json
+  Platform:    linux/arm64
+               
+  Name:        <account>.dkr.ecr.us-east-1.amazonaws.com/containers-lab/payflow:v6@sha256:38e48c0e39cb13091513ebf806efd16efbf0ef2610a6514bbd4cd09cd21bb5b8
+  MediaType:   application/vnd.oci.image.manifest.v1+json
+  Platform:    unknown/unknown
+  Annotations: 
+    vnd.docker.reference.digest: sha256:7acadbbcbd5e3cd3eca77ea8e59b7a955f2a400384865491a454f627843d2340
+    vnd.docker.reference.type:   attestation-manifest
+$ docker pull -q $REPO:v6
+<account>.dkr.ecr.us-east-1.amazonaws.com/containers-lab/payflow:v6
+$ docker image inspect --format '{{.Os}}/{{.Architecture}}' $REPO:v6
+linux/arm64
+$ docker run -d --name v6 -p 8080:8080 $REPO:v6
+d9c80587a51e3f929393473b385e734ebb0262265e9b2f3f04dccfc8258deef6
+$ timeout 90 sh -c 'until curl -sf localhost:8080/actuator/health; do sleep 1; done'; echo
+{"status":"UP"}
+$ docker rm -f v6
+v6

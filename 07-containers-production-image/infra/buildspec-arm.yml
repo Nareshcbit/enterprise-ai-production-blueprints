@@ -1,0 +1,19 @@
+version: 0.2
+env:
+  shell: bash
+phases:
+  install:
+    runtime-versions:
+      java: corretto21
+  pre_build:
+    commands:
+      - export ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+      - export ECR_REG=$ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
+      - export REPO=$ECR_REG/containers-lab/payflow
+      - bash tools/prepare_workspace.sh
+  build:
+    commands:
+      - cd steps/arm && python3 ../../tools/record.py --host "CodeBuild Arm" --out ../../out/arm --cwd ../../work exec-format.sh multiarch.sh
+artifacts:
+  base-directory: out
+  files: ['**/*']

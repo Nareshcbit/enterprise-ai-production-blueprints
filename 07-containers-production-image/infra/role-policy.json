@@ -1,0 +1,18 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {"Sid": "Logs", "Effect": "Allow", "Action": ["logs:CreateLogStream", "logs:PutLogEvents"],
+     "Resource": "arn:aws:logs:us-east-1:ACCOUNT:log-group:/containers-lab/*"},
+    {"Sid": "SourceAndArtifacts", "Effect": "Allow", "Action": ["s3:GetObject", "s3:GetObjectVersion", "s3:PutObject"],
+     "Resource": "arn:aws:s3:::BUCKET/*"},
+    {"Sid": "BucketAcl", "Effect": "Allow", "Action": ["s3:GetBucketAcl", "s3:GetBucketLocation"],
+     "Resource": "arn:aws:s3:::BUCKET"},
+    {"Sid": "EcrLogin", "Effect": "Allow",
+     "Action": ["ecr:GetAuthorizationToken", "ecr-public:GetAuthorizationToken", "sts:GetServiceBearerToken"],
+     "Resource": "*"},
+    {"Sid": "EcrRepo", "Effect": "Allow",
+     "Action": ["ecr:BatchCheckLayerAvailability", "ecr:BatchGetImage", "ecr:GetDownloadUrlForLayer",
+                "ecr:InitiateLayerUpload", "ecr:UploadLayerPart", "ecr:CompleteLayerUpload", "ecr:PutImage"],
+     "Resource": "arn:aws:ecr:us-east-1:ACCOUNT:repository/containers-lab/payflow"}
+  ]
+}

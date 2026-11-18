@@ -1,0 +1,16 @@
+$ cat docker/Dockerfile.s2
+# host: CodeBuild x86 standard:7.0
+FROM public.ecr.aws/docker/library/eclipse-temurin:21-jre
+COPY settings.xml /root/.m2/settings.xml
+RUN echo "fetched private packages" && rm /root/.m2/settings.xml
+$ docker build -q -f docker/Dockerfile.s2 -t pf:s2 .
+sha256:16b37cf546000e88390613e205a510b7ecf763a269fabb089b353efb08503dbc
+$ docker run --rm --entrypoint ls pf:s2 -A /root/.m2
+$ docker save pf:s2 -o /tmp/s2.tar && mkdir -p /tmp/s2 && tar -xf /tmp/s2.tar -C /tmp/s2
+$ for blob in /tmp/s2/blobs/sha256/*; do \
+  tar -tf "$blob" 2>/dev/null | grep settings.xml | sed "s|^|$(basename "$blob" | cut -c1-12)  |"; \
+done
+686d5b95ed82  root/.m2/.wh.settings.xml
+8413f8f6ceb2  root/.m2/settings.xml
+$ for blob in /tmp/s2/blobs/sha256/*; do tar -xOf "$blob" root/.m2/settings.xml 2>/dev/null; done
+<settings><servers><server><id>payflow-nexus</id><username>ci</username><password>demo-not-a-real-token</password></server></servers></settings>

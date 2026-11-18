@@ -1,0 +1,3 @@
+FROM public.ecr.aws/docker/library/eclipse-temurin:21-jre
+ARG REPO_TOKEN
+RUN test -n "$REPO_TOKEN" && echo "fetched private packages"

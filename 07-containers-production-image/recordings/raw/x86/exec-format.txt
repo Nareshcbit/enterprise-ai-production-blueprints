@@ -1,0 +1,6 @@
+$ uname -m
+# host: CodeBuild x86 standard:7.0
+x86_64
+$ docker tag pf:v6 $REPO:v6-amd64-only
+$ docker push -q $REPO:v6-amd64-only
+<account>.dkr.ecr.us-east-1.amazonaws.com/containers-lab/payflow:v6-amd64-only

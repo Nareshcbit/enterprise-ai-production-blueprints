@@ -1,0 +1,22 @@
+$ sed -i 's/"ACCEPTED"/"RECEIVED"/' src/main/java/com/payflow/PaymentsController.java
+# host: CodeBuild x86 standard:7.0
+$ git diff --stat
+ src/main/java/com/payflow/PaymentsController.java | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+$ time docker build --progress=plain -f docker/Dockerfile.v1 -t pf:v1-change . 2>&1 \
+  | grep -E '^#[0-9]+ (\[[0-9]+/[0-9]+\]|CACHED|DONE)'
+…
+#6 [2/5] RUN apt-get update && apt-get install -y curl
+#6 CACHED
+#7 [3/5] WORKDIR /app
+#7 CACHED
+#8 [4/5] COPY . .
+#8 DONE 1.1s
+#9 [5/5] RUN mvn -B -q package -DskipTests
+#9 DONE 11.1s
+…
+
+real	0m13.033s
+user	0m0.277s
+sys	0m0.094s
+$ git checkout -- src

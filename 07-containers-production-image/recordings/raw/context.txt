@@ -1,0 +1,47 @@
+$ ls -A
+# host: CodeBuild x86 standard:7.0
+.env
+.git
+.gitignore
+docker
+pom.xml
+settings.xml
+src
+target
+$ du -sh .git target .env settings.xml
+196K	.git
+63M	target
+4.0K	.env
+4.0K	settings.xml
+$ docker builder prune -af > /dev/null
+$ docker build --progress=plain -f docker/Dockerfile.v1 -t pf:v1 . 2>&1 | grep 'transferring context' | tail -1
+#4 transferring context: 65.65MB 0.2s done
+$ docker run --rm --entrypoint ls pf:v1 -A /app
+docker
+.env
+.git
+.gitignore
+pom.xml
+settings.xml
+src
+target
+$ docker run --rm --entrypoint cat pf:v1 /app/.env
+PAYFLOW_DB_PASSWORD=demo-not-a-real-password
+$ cat docker/Dockerfile.v3.dockerignore
+.git
+target
+.env
+*.md
+settings.xml
+docker
+local-data
+$ docker builder prune -af > /dev/null
+$ docker build --progress=plain -f docker/Dockerfile.v3 -t pf:v3 . 2>&1 | grep 'transferring context' | tail -1
+#3 transferring context: 3.60kB done
+$ docker run --rm --entrypoint ls pf:v3 -A /app
+.gitignore
+pom.xml
+src
+target
+$ docker run --rm --entrypoint cat pf:v3 /app/.env
+cat: /app/.env: No such file or directory

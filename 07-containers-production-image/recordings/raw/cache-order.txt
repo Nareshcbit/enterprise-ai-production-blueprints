@@ -1,0 +1,34 @@
+$ diff docker/Dockerfile.v1 docker/Dockerfile.v2
+# host: CodeBuild x86 standard:7.0
+3a4,5
+> COPY pom.xml .
+> RUN mvn -B -q dependency:go-offline
+$ docker build -q -f docker/Dockerfile.v2 -t pf:v2 .
+sha256:1e5e4c58661a986b0a81ba5130ea1d727291982b91ed7e694bbf588a43d14e09
+$ sed -i 's/"ACCEPTED"/"RECEIVED"/' src/main/java/com/payflow/PaymentsController.java
+$ time docker build --progress=plain -f docker/Dockerfile.v2 -t pf:v2-change . 2>&1 \
+  | grep -E '^#[0-9]+ (\[[0-9]+/[0-9]+\]|CACHED|DONE)'
+#1 DONE 0.0s
+#2 DONE 0.0s
+#3 DONE 0.0s
+#4 [1/7] FROM public.ecr.aws/docker/library/maven:3.9-eclipse-temurin-21
+#4 DONE 0.0s
+#5 DONE 0.0s
+#6 [2/7] RUN apt-get update && apt-get install -y curl
+#6 CACHED
+#7 [3/7] WORKDIR /app
+#7 CACHED
+#8 [4/7] COPY pom.xml .
+#8 CACHED
+#9 [5/7] RUN mvn -B -q dependency:go-offline
+#9 CACHED
+#10 [6/7] COPY . .
+#10 DONE 0.1s
+#11 [7/7] RUN mvn -B -q package -DskipTests
+#11 DONE 5.1s
+#12 DONE 0.2s
+
+real	0m5.603s
+user	0m0.095s
+sys	0m0.035s
+$ git checkout -- src

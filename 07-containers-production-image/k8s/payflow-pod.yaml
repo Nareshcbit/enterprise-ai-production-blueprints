@@ -1,0 +1,20 @@
+# The kubelet refuses to start the container if the image would run as uid 0.
+# A numeric USER (distroless :nonroot sets 65532) lets it verify that.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: payments-api
+spec:
+  securityContext:
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
+  containers:
+    - name: payments-api
+      image: <account>.dkr.ecr.us-east-1.amazonaws.com/containers-lab/payflow:v6
+      ports:
+        - containerPort: 8080
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop: ["ALL"]

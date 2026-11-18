@@ -1,0 +1,19 @@
+version: 0.2
+env:
+  shell: bash
+phases:
+  install:
+    runtime-versions:
+      java: corretto21
+  pre_build:
+    commands:
+      - export ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+      - export ECR_REG=$ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
+      - export REPO=$ECR_REG/containers-lab/payflow
+      - bash tools/prepare_workspace.sh
+  build:
+    commands:
+      - cd steps/x86 && python3 ../../tools/record.py --host "CodeBuild x86 standard:7.0" --out ../../out/x86 --cwd ../../work layers.sh whiteout.sh cache-miss.sh cache-order.sh cache-mount.sh context.sh secret-arg.sh secret-mount.sh stages.sh distroless.sh scan.sh root.sh nonroot.sh exec-format.sh multiarch.sh pin.sh repro.sh
+artifacts:
+  base-directory: out
+  files: ['**/*']

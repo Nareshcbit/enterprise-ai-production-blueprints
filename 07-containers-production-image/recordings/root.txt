@@ -1,0 +1,8 @@
+$ for t in pf:v1 pf:v4; do echo "$t Config.User='$(docker image inspect --format '{{.Config.User}}' $t)'"; done
+# host: CodeBuild x86 standard:7.0
+pf:v1 Config.User=''
+pf:v4 Config.User=''
+$ docker run --rm --entrypoint id pf:v1
+uid=0(root) gid=0(root) groups=0(root)
+$ docker run --rm --entrypoint id pf:v4
+uid=0(root) gid=0(root) groups=0(root)

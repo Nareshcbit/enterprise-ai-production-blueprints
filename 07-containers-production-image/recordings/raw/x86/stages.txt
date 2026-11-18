@@ -1,0 +1,23 @@
+$ cat docker/Dockerfile.v4
+# host: CodeBuild x86 standard:7.0
+FROM public.ecr.aws/docker/library/maven:3.9-eclipse-temurin-21 AS build
+WORKDIR /app
+COPY pom.xml .
+RUN --mount=type=cache,target=/root/.m2 mvn -B -q dependency:go-offline
+COPY src ./src
+RUN --mount=type=cache,target=/root/.m2 mvn -B -q package -DskipTests
+
+FROM public.ecr.aws/docker/library/eclipse-temurin:21-jre
+COPY --from=build /app/target/payments-api.jar /app/payments-api.jar
+EXPOSE 8080
+CMD ["java", "-jar", "/app/payments-api.jar"]
+$ docker build -q -f docker/Dockerfile.v4 -t pf:v4 .
+sha256:8b6d096444f229ddebfad928fb74617c58712d41e579f9273709de8f6df7bd5f
+$ for t in pf:v3 pf:v4; do echo "$t $(docker image inspect --format '{{.Size}}' $t) bytes"; done
+pf:v3 887472445 bytes
+pf:v4 385394483 bytes
+$ docker history --format '{{.Size}}\t{{.CreatedBy}}' pf:v4 | head -4
+0B	CMD ["java" "-jar" "/app/payments-api.jar"]
+0B	EXPOSE [8080/tcp]
+65.6MB	COPY /app/target/payments-api.jar /app/payme…
+0B	ENTRYPOINT ["/__cacert_entrypoint.sh"]
